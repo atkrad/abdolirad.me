@@ -1,0 +1,76 @@
+==================================================================
+https://keybase.io/atkrad
+--------------------------------------------------------------------
+
+I hereby claim:
+
+  * I am an admin of http://atkrad.com
+  * I am atkrad (https://keybase.io/atkrad) on keybase.
+  * I have a public key with fingerprint 0380 F2F8 DF7A BA1A E7DB  D84A 1935 1496 62CA FDB8
+
+To do so, I am signing this object:
+
+{
+    "body": {
+        "key": {
+            "eldest_kid": "01205f7ede1b28becd844788371ff286e983e9e616dec0c2ee985b09105fa87e17660a",
+            "fingerprint": "0380f2f8df7aba1ae7dbd84a1935149662cafdb8",
+            "host": "keybase.io",
+            "key_id": "1935149662cafdb8",
+            "kid": "010157a5087464179eb14299d1bb8ae2f4017f2f056012432e0219367b9f6d699d4f0a",
+            "uid": "03841fbd03c1975c6d06c58e4d9cbb19",
+            "username": "atkrad"
+        },
+        "service": {
+            "hostname": "atkrad.com",
+            "protocol": "http:"
+        },
+        "type": "web_service_binding",
+        "version": 1
+    },
+    "ctime": 1463431705,
+    "expire_in": 157680000,
+    "prev": "ed377de1b9a95609bffe8eb241177857da3569ea21009bcc527fc7657d590dec",
+    "seqno": 15,
+    "tag": "signature"
+}
+
+which yields the signature:
+
+-----BEGIN PGP MESSAGE-----
+Version: Keybase OpenPGP v2.0.53
+Comment: https://keybase.io/crypto
+
+yMNnAnicbZJ7UBVVHMcvBqgXGEmBEUSGFiVGL7Bn3wsXYnhlzsV/KBAjb/s4e9nA
+u3DvBSKigWZ0GppsyjHHqMjGRwnK+yVUEK9RLCmDCXCwRCYHAxGBSazoLOUfzXT+
+2Tm/3/f72e/vnNPn84TB6BZI+30gXvmz3W2o51ihITOGCCzFRE0uwWJKsVy49oF5
+MnS6rLmqjMVgOCBwWmGhDIFIcCKUZI6iWI4jWaAoBMdAniMhDxnAyFDCJQKiAi3i
+PEAugWMhYBkGFzATpqh2G3TkO1S7S8eSHK4QCicrrCAKQICsLCKyAHiSBhTPMIQk
+KLLIIWOO5tQdKJwoOGGUqqEa2ljX4v2P/nFuHNCsQOMcSzEUYHkoAorgeRmIIidA
+QqFwwKIEOM2gESmSgDiBYAwr8gojM0hIKWu5C//BkRwFFFHGSQnwLC0xMs5INAcp
+mZdEEfC60AkdduEQRGrBlesQZKzMhKFakSpB/Vj1Of7Tj5K0Q8iX79BcmqTloXqO
+y5Ufo9tcJfm6rhiK1n8JVlG1y+gIkaEIOpyqZsdiAFJKLlVHAoohKRKwOG3C4Kv5
+qgNaVV1BswyHo6X/BhYhJJRJltUvkxd4NDovKgrkoEhQALAsR7OyQNIMDwUC4Kgp
+STTBKhLLoAbN4+iKMX2mArums1FOwYaYTtVmF1yFDoiVfdOT7W5wMxo8Pdbpb8tg
+3Oj7+MUNhWxa3XfCK2RH3h8/z/gf5AJfe/PjO7UdZttLG+ZmVs/mFMljVY0PMjNG
+hptDL63YOit6lq6fHA9e39uyPxLfdaDbb/yXU3ENy34LREPjlljD1syLvS1zyaGW
+p6LPzJq5rM9SFlbaFhKN00cWrrb8IMYPJpFjocbxdcpSeVp4k/FA5a2J9OOvj0fs
+NGXS3X5dW676zPjev/xuc6znhs21HR7Npnn/yNCPvB9dm6yZr6+ytkacZmY/vzzC
+eVWW75l/xzCUFFJZvancP2Zg/cb4Arel4317/BedC8pwB7DVJ1WMe66O1t00LjJh
+p9i7vx0e0dy/UsmcF+/Mem8fTk8pKGps6X/Y5tZfkZBa8/CVI+a0jAs3dxTvLvTt
+PjfwSXBK1O1Ey63+v27fqAMLc5MlX2QIv194JizVrSlx4ns+ssLH+0rCZNj96LS6
+8Bvtxeb9Zbtyr1WMVqcGz4VOPjJN7X3LWnXxUlCqR7jqe8Zi3rsynX33aa/aoL6D
+bT9+V+LVMLMyPT8QEp5eULI8H9H+3oler1/Nz3XVNATYP52u7/pSJujrAecTgtq6
+9oUunmupj41rtmzOkt8XLN/GYzPZO+smPozO+nrl2HJ33LaA3fc6p2pfzj/fefb5
+1pOzytFBJfmnstOa47BZfHJq+1ixpf/to45g88TgQFPy1jfclWe7Hmix5aXbXlga
+LbjXWv03DhfAqg==
+=eE6Y
+-----END PGP MESSAGE-----
+
+And finally, I am proving ownership of this host by posting or
+appending to this document.
+
+View my publicly-auditable identity here: https://keybase.io/atkrad
+
+==================================================================
+
