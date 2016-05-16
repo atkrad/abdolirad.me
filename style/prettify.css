@@ -1,0 +1,134 @@
+pre, code {
+    font-family: Inconsolata, monospace;
+    font-size: 15px;
+    white-space: pre;
+    border: 0 !important;
+    border-radius: 0;
+    height: 100%;
+    line-height: 1;
+}
+
+/* UXCam scheme for google prettify*/
+pre.prettyprint {
+    display: block;
+    background: none;
+    padding: 5px;
+    border: 1px solid #888;
+    margin: 0;
+}
+
+/* decimal */
+
+/* Specify class=linenums on a pre to get line numbering */
+ol.linenums {
+    margin-top: 0;
+    margin-bottom: 0;
+    color: #536C74;
+    /*background-color: #073642;*/
+}
+
+/* IE indents via margin-left */
+li.L0, li.L1, li.L2, li.L3, li.L4, li.L5, li.L6, li.L7, li.L8 {
+    list-style-type: decimal !important;
+}
+
+/* Alternate shading for lines */
+li.L1, li.L3, li.L5, li.L7, li.L9 {
+    background-color: transparent !important;
+}
+
+.linenums li {
+    border-left: 1px solid #586E75;
+}
+
+.pln {
+    color: #839496 !important;
+}
+
+@media screen {
+    .str {
+        color: #2aa198 !important;
+    }
+
+    .kwd {
+        color: #859900 !important;
+    }
+
+    .com {
+        color: #586175 !important;
+    }
+
+    .typ {
+        color: #b58900 !important;
+    }
+
+    .lit {
+        color: #2aa198 !important;
+    }
+
+    .pun, .opn, .clo {
+        color: #839496 !important;
+    }
+
+    .tag {
+        color: #268bd2 !important;
+    }
+
+    .atn {
+        color: #586175 !important;
+    }
+
+    .atv {
+        color: #2aa198 !important;
+    }
+
+    .dec, .var {
+        color: #268bd2 !important;
+    }
+
+    .fun {
+        color: red !important;
+    }
+}
+
+@media print, projection {
+    .str {
+        color: #060 !important;
+    }
+
+    .kwd {
+        color: #006 !important;
+        font-weight: bold
+    }
+
+    .com {
+        color: #600 !important;
+        font-style: italic
+    }
+
+    .typ {
+        color: #404 !important;
+        font-weight: bold
+    }
+
+    .lit {
+        color: #044 !important;
+    }
+
+    .pun {
+        color: #440 !important;
+    }
+
+    .tag {
+        color: #006 !important;
+        font-weight: bold
+    }
+
+    .atn {
+        color: #404 !important;
+    }
+
+    .atv {
+        color: #060 !important;
+    }
+}
