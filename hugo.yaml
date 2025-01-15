@@ -1,0 +1,21 @@
+baseURL: https://abdolirad.me
+languageCode: en-us
+title: M. Abdolirad
+
+module:
+  imports:
+    - path: github.com/adityatelange/hugo-PaperMod
+
+params:
+  profileMode:
+    enabled: true
+    title: "Code to Cloud: The Journey"
+  socialIcons: # optional
+    - name: "github"
+      url: "https://github.com/atkrad"
+    - name: "linkedin"
+      url: "https://www.linkedin.com/in/atkrad"
+    - name: "reddit"
+      url: "https://www.reddit.com/user/atkrad"
+    - name: "email"
+      url: "mailto:m.abdolirad@gmail.com"
