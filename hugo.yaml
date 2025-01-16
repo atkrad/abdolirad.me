@@ -1,17 +1,19 @@
 baseURL: https://abdolirad.me
-languageCode: en-US
+languageCode: en
 title: M. Abdolirad
 
-defaultContentLanguage: en
-defaultContentLanguageInSubdir: true
+enableRobotsTXT: true
+
+#defaultContentLanguage: en
+#defaultContentLanguageInSubdir: true
 languages:
   en:
-    baseURL: https://abdolirad.me
+    baseURL: https://abdolirad.me/
     contentDir: content/en
     disabled: false
-    languageCode: en-US
+    languageCode: en-us
     languageDirection: ltr
-    languageName: English
+    languageName: ":us:"
     menus:
       main:
         - name: Articles
@@ -22,12 +24,12 @@ languages:
           weight: 20
     weight: 1
   fa:
-    baseURL: https://abdolirad.ir
+    baseURL: https://abdolirad.ir/
     contentDir: content/fa
     disabled: false
-    languageCode: fa-IR
+    languageCode: fa-ir
     languageDirection: rtl
-    languageName: Farsi
+    languageName: ":iran:"
     menus:
       main:
         - name: مقالات
@@ -37,6 +39,10 @@ languages:
           pageRef: /archives
           weight: 20
     title: محمد عبدلی‌راد
+    params:
+      profileMode:
+        title: "محمد عبدلی‌راد"
+        subtitle: "محمد عبدلی‌راد"
     weight: 2
 
 module:
@@ -44,7 +50,17 @@ module:
     - path: github.com/adityatelange/hugo-PaperMod
 
 params:
+  env: production
   defaultTheme: auto
+  ShowShareButtons: true
+  ShowReadingTime: true
+  ShowPostNavLinks: true
+  ShowBreadCrumbs: true
+  ShowCodeCopyButtons: true
+  ShowRssButtonInSectionTermList: true
+  ShowAllPagesInArchive: true
+  ShowPageNums: true
+  ShowToc: true
   profileMode:
     enabled: true
     title: "Code to Cloud: The Journey"
