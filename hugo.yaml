@@ -3,7 +3,7 @@ languageCode: en-US
 title: M. Abdolirad
 
 defaultContentLanguage: en
-defaultContentLanguageInSubdir: true
+#defaultContentLanguageInSubdir: true
 languages:
   en:
     baseURL: https://abdolirad.me/
