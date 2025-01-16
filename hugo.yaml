@@ -6,7 +6,7 @@ defaultContentLanguage: en
 defaultContentLanguageInSubdir: true
 languages:
   en:
-    baseURL: https://abdolirad.me
+    baseURL: https://abdolirad.me/
     contentDir: content/en
     disabled: false
     languageCode: en-US
@@ -22,7 +22,7 @@ languages:
           weight: 20
     weight: 1
   fa:
-    baseURL: https://abdolirad.ir
+    baseURL: https://abdolirad.ir/
     contentDir: content/fa
     disabled: false
     languageCode: fa-IR
