@@ -1,17 +1,14 @@
-baseURL: https://abdolirad.me
-languageCode: en
+baseURL: "https://abdolirad.me/"
+languageCode: "en-us"
 title: M. Abdolirad
 
 enableRobotsTXT: true
+defaultContentLanguage: en
 
-#defaultContentLanguage: en
-#defaultContentLanguageInSubdir: true
 languages:
   en:
-    baseURL: https://abdolirad.me/
+    baseURL: "https://abdolirad.me/"
     contentDir: content/en
-    disabled: false
-    languageCode: en-us
     languageDirection: ltr
     languageName: ":us:"
     menus:
@@ -24,10 +21,8 @@ languages:
           weight: 20
     weight: 1
   fa:
-    baseURL: https://abdolirad.ir/
+    baseURL: "https://abdolirad.ir/"
     contentDir: content/fa
-    disabled: false
-    languageCode: fa-ir
     languageDirection: rtl
     languageName: ":iran:"
     menus:
