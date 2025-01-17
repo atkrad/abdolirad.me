@@ -4,10 +4,12 @@ title: M. Abdolirad
 
 enableRobotsTXT: true
 defaultContentLanguage: en
+defaultContentLanguageInSubdir: true
 
 languages:
   en:
     baseURL: "https://abdolirad.me/"
+    languageCode: en-US
     contentDir: content/en
     languageDirection: ltr
     languageName: ":us:"
@@ -22,6 +24,7 @@ languages:
     weight: 1
   fa:
     baseURL: "https://abdolirad.ir/"
+    languageCode: fa-IR
     contentDir: content/fa
     languageDirection: rtl
     languageName: ":iran:"
