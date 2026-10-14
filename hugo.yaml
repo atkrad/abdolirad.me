@@ -1,5 +1,5 @@
 baseURL: "https://abdolirad.me/"
-languageCode: "en-us"
+locale: "en-us"
 title: M. Abdolirad
 
 enableRobotsTXT: true
@@ -9,10 +9,10 @@ defaultContentLanguageInSubdir: true
 languages:
   en:
     baseURL: "https://abdolirad.me/"
-    languageCode: en-US
+    locale: en-US
     contentDir: content/en
-    languageDirection: ltr
-    languageName: ":us:"
+    direction: ltr
+    label: ":us:"
     menus:
       main:
         - name: Articles
@@ -24,10 +24,10 @@ languages:
     weight: 1
   fa:
     baseURL: "https://abdolirad.ir/"
-    languageCode: fa-IR
+    locale: fa-IR
     contentDir: content/fa
-    languageDirection: rtl
-    languageName: ":iran:"
+    direction: rtl
+    label: ":iran:"
     menus:
       main:
         - name: مقالات

@@ -1,0 +1,14 @@
+# Local preview only. `npm run dev` uses this file.
+# Wrangler rewrites every local request to the first custom domain, so this
+# file has no routes. Keep [assets] in step with wrangler.toml.
+"$schema" = "./node_modules/wrangler/config-schema.json"
+name = "abdolirad"
+main = "src/index.js"
+compatibility_date = "2026-10-14"
+
+[assets]
+directory = "./public"
+binding = "ASSETS"
+run_worker_first = true
+html_handling = "none"
+not_found_handling = "none"
