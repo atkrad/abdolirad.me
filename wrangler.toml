@@ -1,0 +1,27 @@
+# Workers Builds does not run a [build] command from this file.
+"$schema" = "./node_modules/wrangler/config-schema.json"
+name = "abdolirad"
+main = "src/index.js"
+compatibility_date = "2026-10-14"
+workers_dev = true
+preview_urls = true
+
+# `npm run dev` uses wrangler.dev.toml so these domains do not rewrite the Host header.
+routes = [
+  { pattern = "abdolirad.me", custom_domain = true },
+  { pattern = "abdolirad.ir", custom_domain = true },
+]
+
+# html_handling is none because the asset router's redirects put /en or /fa in Location.
+[assets]
+directory = "./public"
+binding = "ASSETS"
+run_worker_first = true
+html_handling = "none"
+not_found_handling = "none"
+
+[observability]
+enabled = true
+
+[observability.traces]
+enabled = true

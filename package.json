@@ -1,0 +1,19 @@
+{
+  "name": "abdolirad.me",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "build": "hugo --gc --minify --cleanDestinationDir",
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev -c wrangler.dev.toml",
+    "test": "node --test src/index.test.js src/output.test.js src/config.test.js",
+    "check": "wrangler deploy --dry-run"
+  },
+  "devDependencies": {
+    "wrangler": "^4.151.0"
+  }
+}
