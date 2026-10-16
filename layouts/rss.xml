@@ -1,3 +1,4 @@
+{{- /* Temporary PaperMod override. See TODO.md. */ -}}
 {{- $authorEmail := "" }}
 {{- with site.Params.author }}
   {{- if reflect.IsMap . }}

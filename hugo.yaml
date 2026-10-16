@@ -45,6 +45,7 @@ languages:
 
 module:
   imports:
+    # Copied templates under layouts/ override PaperMod. See TODO.md before upgrading.
     - path: github.com/adityatelange/hugo-PaperMod
 
 params:
