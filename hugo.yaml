@@ -38,9 +38,12 @@ languages:
           weight: 20
     title: محمد عبدلی‌راد
     params:
-      profileMode:
-        title: "محمد عبدلی‌راد"
-        subtitle: "محمد عبدلی‌راد"
+      homeInfoParams:
+        Title: "محمد عبدلی‌راد"
+        Content: |
+          مهندس نرم‌افزار و پلتفرم
+
+          من نرم‌افزار و ابزارهایی برای توسعه‌دهندگان می‌سازم. در طراحی آن‌ها، سادگی، قابل‌اعتماد بودن و تجربهٔ توسعه‌دهنده برایم اهمیت زیادی دارد. اینجا دربارهٔ تصمیم‌های مهندسی، چالش‌های واقعی و چیزهایی که در این مسیر یاد می‌گیرم، می‌نویسم.
     weight: 2
 
 module:
@@ -61,9 +64,15 @@ params:
   ShowPageNums: true
   ShowToc: true
   profileMode:
-    enabled: true
-    title: "Code to Cloud: The Journey"
-    subtitle: "From Writing Code to Building Cloud Infrastructure"
+    enabled: false
+  homeInfoParams:
+    Title: "Mohammad Abdolirad"
+    Content: |
+      Software & Platform Engineer
+
+      I build software and developer tools with a focus on simplicity, reliability, and developer experience. Here, I write about engineering decisions, real-world challenges, and lessons learned along the way.
+  mainSections:
+    - articles
   socialIcons:
     - name: "github"
       url: "https://github.com/atkrad"
