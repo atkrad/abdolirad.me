@@ -1,3 +1,5 @@
+import { rewritePreviewDocument } from "./preview-links.js";
+
 // Hugo writes each language under public/<lang>. Production and local URLs have no prefix.
 // Preview hosts on *.workers.dev may use /en or /fa. Redirects keep that prefix only there.
 
@@ -154,9 +156,10 @@ function languageFile(lang, publicPath) {
 
 export async function handleRequest(request, env) {
   const url = new URL(request.url);
-  const preview = { enabled: isPreviewHost(url.hostname), prefix: "" };
+  const preview = { enabled: isPreviewHost(url.hostname), prefix: "", lang: "" };
   const lang = resolveLanguage(url, request);
   if (!lang) return textResponse(404, "Not found\n", {}, request.method, preview);
+  if (preview.enabled) preview.lang = lang;
 
   if (request.method !== "GET" && request.method !== "HEAD") {
     return textResponse(405, "Method not allowed\n", { allow: "GET, HEAD" }, request.method, preview);
@@ -330,7 +333,21 @@ async function finish(response, method, status, overrides = {}, preview = { enab
     await cancel(response);
     return new Response(null, { status, headers });
   }
+  if (preview.enabled && isHtml(headers) && !isEncoded(headers) && typeof HTMLRewriter === "function") {
+    return rewritePreviewDocument(new Response(response.body, { status, headers }), preview.lang);
+  }
   return new Response(response.body, { status, headers });
+}
+
+function isHtml(headers) {
+  const type = headers.get("content-type");
+  if (!type) return false;
+  return type.split(";")[0].trim().toLowerCase() === "text/html";
+}
+
+function isEncoded(headers) {
+  const encoding = headers.get("content-encoding");
+  return Boolean(encoding) && encoding.toLowerCase() !== "identity";
 }
 
 function textResponse(status, body, extra = {}, method = "GET", preview = { enabled: false }) {

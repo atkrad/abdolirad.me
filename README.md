@@ -23,7 +23,7 @@ The Nix shell provides Hugo, Go, and Node.js. `npm ci` installs Wrangler. The sh
 
 `localhost` is English. Any other hostname returns 404.
 
-A `*.workers.dev` preview URL opens English. Add `?lang=fa`, or start the path with `/fa/`, for Persian. `X-Blog-Host: abdolirad.me` or `X-Blog-Host: abdolirad.ir` still works. Those preview responses send `X-Robots-Tag: noindex` and a `robots.txt` that disallows crawling. Production hosts ignore the query, the `/fa/` prefix, and that header.
+A `*.workers.dev` preview URL opens English. `/en/` and `/fa/` select the language, and `?lang=fa` still selects Persian. Links in those pages stay on the preview host. `X-Blog-Host: abdolirad.me` or `X-Blog-Host: abdolirad.ir` still works. Preview responses send `X-Robots-Tag: noindex, nofollow`, and `robots.txt` disallows crawling. Canonical and hreflang URLs stay on the production domains. Production hosts ignore the query, the language prefix, and that header.
 
 ## Deploy
 

@@ -10,7 +10,7 @@
     "build": "hugo --gc --minify --cleanDestinationDir",
     "deploy": "wrangler deploy",
     "dev": "wrangler dev -c wrangler.dev.toml",
-    "test": "node --test src/index.test.js src/output.test.js src/config.test.js",
+    "test": "node --test src/index.test.js src/preview-links.test.js src/output.test.js src/config.test.js",
     "check": "wrangler deploy --dry-run"
   },
   "devDependencies": {

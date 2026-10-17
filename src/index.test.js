@@ -10,7 +10,12 @@ const files = {
   "/fa/articles/index.html": { body: "<html>fa-articles</html>", type: "text/html" },
   "/en/404.html": { body: "<html>en-404</html>", type: "text/html" },
   "/fa/404.html": { body: "<html>fa-404</html>", type: "text/html" },
+  "/en/assets/css/site.css": { body: "body{}", type: "text/css" },
   "/fa/assets/css/site.css": { body: "body{}", type: "text/css" },
+  "/en/linked.html": {
+    body: '<a href="https://abdolirad.me/articles/?q=a%20b#x">post</a>',
+    type: "text/html",
+  },
   "/fa/only-fa.txt": { body: "persian-only", type: "text/plain" },
   "/en/100%25.txt": { body: "percent", type: "text/plain" },
   "/en/release..notes.txt": { body: "notes", type: "text/plain" },
@@ -168,4 +173,44 @@ test("preview hosts serve both languages and stay out of search indexes", async 
   const hidden = await simulateRequest("https://abdolirad.me/fa/");
   assert.equal(hidden.response.status, 404);
   assert.equal(hidden.response.headers.get("x-robots-tag"), null);
+});
+
+test("preview assets, redirects, and validators stay valid", async () => {
+  const preview = "https://switch-homepage-to-home-info-abdolirad.example.workers.dev";
+
+  const css = await simulateRequest(`${preview}/assets/css/site.css`);
+  assert.equal(css.response.status, 200);
+  assert.equal(css.response.headers.get("content-type"), "text/css");
+  assert.equal(css.body, "body{}");
+  assert.equal(css.response.headers.get("etag"), ETAG);
+  assert.equal(css.calls[0].pathname, "/en/assets/css/site.css");
+
+  const persianCss = await simulateRequest(`${preview}/fa/assets/css/site.css`);
+  assert.equal(persianCss.response.status, 200);
+  assert.equal(persianCss.body, "body{}");
+  assert.equal(persianCss.calls[0].pathname, "/fa/assets/css/site.css");
+
+  const head = await simulateRequest(`${preview}/`, { method: "HEAD" });
+  assert.equal(head.response.status, 200);
+  assert.equal(head.body, "");
+  assert.equal(head.response.headers.get("etag"), ETAG);
+  assert.equal(head.response.headers.get("content-type"), "text/html");
+
+  const fresh = await simulateRequest(`${preview}/`, { headers: { "if-none-match": ETAG } });
+  assert.equal(fresh.response.status, 304);
+  assert.equal(fresh.body, "");
+  assert.equal(fresh.response.headers.get("etag"), ETAG);
+
+  const redirect = await simulateRequest(`${preview}/en/articles`);
+  assert.equal(redirect.response.status, 308);
+  assert.equal(redirect.response.headers.get("location"), "/en/articles/");
+  const page = await simulateRequest(`${preview}/en/articles/`);
+  assert.equal(page.response.status, 200);
+  assert.equal(page.body, "<html>en-articles</html>");
+
+  const linked = await simulateRequest("https://abdolirad.me/linked.html");
+  assert.equal(linked.response.status, 200);
+  assert.equal(linked.body, '<a href="https://abdolirad.me/articles/?q=a%20b#x">post</a>');
+  assert.equal(linked.response.headers.get("etag"), ETAG);
+  assert.equal(linked.response.headers.get("x-robots-tag"), null);
 });
