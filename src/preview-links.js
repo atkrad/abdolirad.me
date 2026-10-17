@@ -2,7 +2,7 @@
 // on the preview host. Canonical, hreflang, Open Graph, and JSON-LD are not
 // anchors, so they keep the production domains.
 
-import { PRODUCTION_HOSTS, normalizeHost } from "./routing.js";
+import { PRODUCTION_HOSTS, normalizeHost } from "./hosts.js";
 
 const ABSOLUTE_HTTP = /^(https?:)?\/\/([^/?#]*)([^?#]*)(\?[^#]*)?(#.*)?$/i;
 const HTTP_SCHEME = /^https?:/i;

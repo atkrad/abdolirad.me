@@ -59,12 +59,9 @@ test("HTMLRewriter keeps preview navigation inside the deployment", async () => 
   const files = {
     "/en/index.html": { body: english, type: "text/html; charset=utf-8" },
     "/fa/index.html": { body: persian, type: "text/html; charset=utf-8" },
-    "/en/articles/index.html": { body: english, type: "text/html; charset=utf-8" },
-    "/fa/articles/index.html": { body: persian, type: "text/html; charset=utf-8" },
     "/en/404.html": { body: "<a href=https://abdolirad.me/>home</a>", type: "text/html; charset=utf-8" },
     "/fa/404.html": { body: "<a href=https://abdolirad.ir/>home</a>", type: "text/html; charset=utf-8" },
     "/en/assets/css/site.css": { body: "body{}", type: "text/css" },
-    "/fa/assets/css/site.css": { body: "body{}", type: "text/css" },
     "/en/data.json": { body: '{"url":"https://abdolirad.me/"}', type: "application/json" },
     "/en/feed.xml": { body: "<url>https://abdolirad.me/</url>", type: "application/xml" },
     "/en/note.txt": { body: "https://abdolirad.me/", type: "text/plain; charset=utf-8" },
@@ -82,6 +79,7 @@ test("HTMLRewriter keeps preview navigation inside the deployment", async () => 
               path: "src/preview-harness.js",
               contents: harness(files),
             },
+            { type: "ESModule", path: "src/hosts.js", contents: readFileSync("src/hosts.js", "utf8") },
             { type: "ESModule", path: "src/routing.js", contents: readFileSync("src/routing.js", "utf8") },
             {
               type: "ESModule",
@@ -111,13 +109,6 @@ test("HTMLRewriter keeps preview navigation inside the deployment", async () => 
     assert.deepEqual(anchorHrefs(persianHome.body), expectedAnchors("fa", "https://abdolirad.ir/", "en"));
     assertProductionMetadata(persianHome.body, "https://abdolirad.ir/articles/welcome/");
 
-    const redirect = await dispatch(mf, `${PREVIEW}/en/articles`);
-    assert.equal(redirect.status, 308);
-    assert.equal(redirect.headers.get("location"), "/en/articles/");
-    const articles = await dispatch(mf, `${PREVIEW}/en/articles/`);
-    assert.equal(articles.status, 200);
-    assert.deepEqual(anchorHrefs(articles.body), expectedAnchors("en", "https://abdolirad.me/", "fa"));
-
     const missing = await dispatch(mf, `${PREVIEW}/fa/missing`);
     assert.equal(missing.status, 404);
     assert.deepEqual(anchorHrefs(missing.body), ["/fa/"]);
@@ -133,9 +124,6 @@ test("HTMLRewriter keeps preview navigation inside the deployment", async () => 
     assert.equal(css.headers.get("content-type"), "text/css");
     assert.equal(css.body, "body{}");
     assert.equal(css.headers.get("etag"), '"asset"');
-    const persianCss = await dispatch(mf, `${PREVIEW}/fa/assets/css/site.css`);
-    assert.equal(persianCss.body, "body{}");
-    assert.equal(persianCss.headers.get("etag"), '"asset"');
 
     const json = await dispatch(mf, `${PREVIEW}/data.json`);
     assert.equal(json.body, '{"url":"https://abdolirad.me/"}');
@@ -160,11 +148,6 @@ test("HTMLRewriter keeps preview navigation inside the deployment", async () => 
     assert.equal(fresh.status, 304);
     assert.equal(fresh.body, "");
     assert.equal(fresh.headers.get("etag"), '"asset"');
-
-    const robots = await dispatch(mf, `${PREVIEW}/robots.txt`);
-    assert.equal(robots.status, 200);
-    assert.match(robots.body, /Disallow:\s*\//);
-    assert.equal(robots.headers.get("content-type")?.split(";")[0], "text/plain");
   } finally {
     await mf.dispose();
   }

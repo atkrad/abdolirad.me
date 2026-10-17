@@ -1,21 +1,8 @@
+import { LOCAL_HOSTS, PRODUCTION_HOSTS, normalizeHost } from "./hosts.js";
 import { rewritePreviewDocument } from "./preview-links.js";
 
 // Hugo writes each language under public/<lang>. Production and local URLs have no prefix.
 // Preview hosts on *.workers.dev may use /en or /fa. Redirects keep that prefix only there.
-
-export const PRODUCTION_HOSTS = {
-  "abdolirad.me": "en",
-  "abdolirad.ir": "fa",
-};
-
-// localhost is English so the default wrangler URL works. fa.localhost is Persian.
-export const LOCAL_HOSTS = {
-  "en.localhost": "en",
-  "fa.localhost": "fa",
-  localhost: "en",
-  "127.0.0.1": "en",
-  "[::1]": "en",
-};
 
 // Optional on *.workers.dev. Ignored on production and local hosts.
 export const PREVIEW_HOST_HEADER = "x-blog-host";
@@ -38,12 +25,6 @@ const SECURITY_HEADERS = {
 };
 
 const HTML_CACHE = "public, max-age=0, must-revalidate";
-
-export function normalizeHost(hostname) {
-  let host = hostname.toLowerCase().replace(/\.$/, "");
-  if (host === "::1") host = "[::1]";
-  return host;
-}
 
 export function isPreviewHost(hostname) {
   return normalizeHost(hostname).endsWith(".workers.dev");
