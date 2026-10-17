@@ -123,3 +123,49 @@ test("encoded paths and Persian slugs keep their public form", async () => {
   assert.notEqual(traversal.body, "persian-only");
   assert.ok(traversal.calls.every((call) => call.pathname.startsWith("/en/")));
 });
+
+test("preview hosts serve both languages and stay out of search indexes", async () => {
+  const preview = "https://switch-homepage-to-home-info-abdolirad.example.workers.dev";
+
+  const english = await simulateRequest(`${preview}/`);
+  assert.equal(english.body, "<html>en-home</html>");
+  assert.equal(english.response.headers.get("x-robots-tag"), "noindex, nofollow");
+  assert.equal(english.calls[0].pathname, "/en/index.html");
+
+  const query = await simulateRequest(`${preview}/articles/?lang=fa`);
+  assert.equal(query.body, "<html>fa-articles</html>");
+  assert.equal(query.calls[0].pathname, "/fa/articles/index.html");
+
+  const prefixed = await simulateRequest(`${preview}/fa/articles`);
+  assert.equal(prefixed.response.status, 308);
+  assert.equal(prefixed.response.headers.get("location"), "/fa/articles/");
+  assert.equal(prefixed.response.headers.get("x-robots-tag"), "noindex, nofollow");
+  const prefixedPage = await simulateRequest(`${preview}/fa/articles/`);
+  assert.equal(prefixedPage.body, "<html>fa-articles</html>");
+
+  const header = await simulateRequest(`${preview}/`, { headers: { "x-blog-host": "abdolirad.ir" } });
+  assert.equal(header.body, "<html>fa-home</html>");
+
+  const pathWins = await simulateRequest(`${preview}/fa/?lang=en`);
+  assert.equal(pathWins.body, "<html>fa-home</html>");
+
+  const invalid = await simulateRequest(`${preview}/?lang=de`);
+  assert.equal(invalid.response.status, 404);
+  assert.equal(invalid.response.headers.get("x-robots-tag"), "noindex, nofollow");
+
+  const badHeader = await simulateRequest(`${preview}/`, { headers: { "x-blog-host": "example.com" } });
+  assert.equal(badHeader.response.status, 404);
+
+  const robots = await simulateRequest(`${preview}/robots.txt`);
+  assert.equal(robots.response.status, 200);
+  assert.match(robots.body, /Disallow:\s*\//);
+  assert.equal(robots.calls.length, 0);
+
+  const production = await simulateRequest("https://abdolirad.me/?lang=fa");
+  assert.equal(production.body, "<html>en-home</html>");
+  assert.equal(production.response.headers.get("x-robots-tag"), null);
+
+  const hidden = await simulateRequest("https://abdolirad.me/fa/");
+  assert.equal(hidden.response.status, 404);
+  assert.equal(hidden.response.headers.get("x-robots-tag"), null);
+});

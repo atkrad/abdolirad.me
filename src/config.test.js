@@ -33,4 +33,6 @@ test("local and production asset settings match, and domains follow the host map
   );
   assert.deepEqual(domains, Object.keys(PRODUCTION_HOSTS));
   assert.equal(/custom_domain\s*=\s*true/.test(dev), false);
+  assert.match(prod, /previews\s*=\s*\{\s*\}/);
+  assert.equal(/\[\[previews\.routes\]\]|previews_enabled\s*=\s*true/.test(prod), false);
 });
