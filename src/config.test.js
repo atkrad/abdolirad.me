@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
-import { PRODUCTION_HOSTS } from "./routing.js";
+import { PRODUCTION_HOSTS } from "./hosts.js";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -33,4 +33,6 @@ test("local and production asset settings match, and domains follow the host map
   );
   assert.deepEqual(domains, Object.keys(PRODUCTION_HOSTS));
   assert.equal(/custom_domain\s*=\s*true/.test(dev), false);
+  assert.match(prod, /previews\s*=\s*\{\s*\}/);
+  assert.equal(/\[\[previews\.routes\]\]|previews_enabled\s*=\s*true/.test(prod), false);
 });

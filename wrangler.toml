@@ -6,6 +6,9 @@ compatibility_date = "2026-10-14"
 workers_dev = true
 preview_urls = true
 
+# Branch previews read this block. Production routes stay on the top-level Worker.
+previews = { }
+
 # `npm run dev` uses wrangler.dev.toml so these domains do not rewrite the Host header.
 routes = [
   { pattern = "abdolirad.me", custom_domain = true },
