@@ -29,6 +29,8 @@ const files = {
     body: "<html>fa-post</html>",
     type: "text/html",
   },
+  "/en/articles/bundle-note/diagram.png": { body: "png-en", type: "image/png" },
+  "/fa/articles/bundle-note/diagram.png": { body: "png-fa", type: "image/png" },
 };
 
 const ETAG = '"asset"';
@@ -106,6 +108,21 @@ test("unknown paths and hosts stay inside one language", async () => {
   const unknown = await simulateRequest("https://example.com/");
   assert.equal(unknown.response.status, 404);
   assert.equal(unknown.calls.length, 0);
+});
+
+test("bundle assets stay on the requesting host", async () => {
+  const english = await simulateRequest("https://abdolirad.me/articles/bundle-note/diagram.png");
+  assert.equal(english.response.status, 200);
+  assert.equal(english.body, "png-en");
+  assert.equal(english.response.headers.get("content-type"), "image/png");
+  assert.equal(english.calls[0].pathname, "/en/articles/bundle-note/diagram.png");
+  assert.equal(english.response.headers.get("location"), null);
+
+  const persian = await simulateRequest("https://abdolirad.ir/articles/bundle-note/diagram.png");
+  assert.equal(persian.response.status, 200);
+  assert.equal(persian.body, "png-fa");
+  assert.equal(persian.calls[0].pathname, "/fa/articles/bundle-note/diagram.png");
+  assert.equal(persian.response.headers.get("location"), null);
 });
 
 test("unsupported methods are rejected", async () => {

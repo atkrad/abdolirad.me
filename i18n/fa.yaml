@@ -1,0 +1,32 @@
+- id: translations
+  translation: "ترجمه‌ها"
+
+- id: powered_by
+  translation: "ساخته شده با"
+
+- id: powered_by_and
+  translation: "و"
+
+- id: archive_link
+  translation: "پیوند به {{ .Title }}"
+
+- id: go_to_top
+  translation: "برو به بالا"
+
+- id: go_to_top_title
+  translation: "برو به بالا (Alt + G)"
+
+- id: draft
+  translation: "پیش‌نویس"
+
+- id: toggle_theme
+  translation: "تغییر پوسته"
+
+- id: rss_recent
+  translation: "مطالب تازه در {{ .Site }}"
+
+- id: rss_recent_in
+  translation: "مطالب تازه در {{ .Section }}، {{ .Site }}"
+
+- id: rss_title_in
+  translation: "{{ .Section }} در {{ .Site }}"

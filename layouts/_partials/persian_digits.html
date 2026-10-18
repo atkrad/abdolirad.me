@@ -1,0 +1,12 @@
+{{- $n := printf "%v" . -}}
+{{- $n = replace $n "0" "۰" -}}
+{{- $n = replace $n "1" "۱" -}}
+{{- $n = replace $n "2" "۲" -}}
+{{- $n = replace $n "3" "۳" -}}
+{{- $n = replace $n "4" "۴" -}}
+{{- $n = replace $n "5" "۵" -}}
+{{- $n = replace $n "6" "۶" -}}
+{{- $n = replace $n "7" "۷" -}}
+{{- $n = replace $n "8" "۸" -}}
+{{- $n = replace $n "9" "۹" -}}
+{{- return $n -}}

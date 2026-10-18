@@ -2,6 +2,8 @@
 
 - [ ] Remove the PaperMod language overrides
 
+`layouts/_partials/post_meta.html` and `layouts/archives.fa.html` format Persian dates. `layouts/archives.html` groups English archive months by `.PublishDate`, because PaperMod groups those months by `.Date`. `layouts/_partials/footer.html` localizes the Persian footer. Leave these in place when you remove the language-method copies below.
+
 PaperMod `v0.0.0-20260802175912-d3768854d00a` calls deprecated Hugo language methods. Commit `9f3738ce5d662b3cd73e7147f7cebac56592ca0a` copied five templates into this site and switched those calls to the supported methods. Remove the copies after the module in `go.mod` contains the same change.
 
 Checked on 2026-10-16:
