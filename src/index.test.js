@@ -21,9 +21,18 @@ const files = {
   "/en/release..notes.txt": { body: "notes", type: "text/plain" },
   "/en/a%3Fb/index.html": { body: "<html>question</html>", type: "text/html" },
   "/fa/%D9%85%D9%82%D8%A7%D9%84%D9%87/index.html": { body: "<html>fa-slug</html>", type: "text/html" },
+  "/en/articles/the-decisions-behind-the-code/index.html": {
+    body: "<html>en-post</html>",
+    type: "text/html",
+  },
+  "/fa/articles/the-decisions-behind-the-code/index.html": {
+    body: "<html>fa-post</html>",
+    type: "text/html",
+  },
 };
 
 const ETAG = '"asset"';
+const PREVIEW = "https://switch-homepage-to-home-info-abdolirad.example.workers.dev";
 
 function mockAssets() {
   const calls = [];
@@ -53,11 +62,14 @@ async function simulateRequest(url, { method = "GET", headers } = {}) {
   return { response, body, calls };
 }
 
-test("hosts select a language, page, asset, 404, and slash redirect", async () => {
+test("production and local hosts serve the selected language", async () => {
   const english = await simulateRequest("https://abdolirad.me/");
   assert.equal(english.response.status, 200);
   assert.equal(english.body, "<html>en-home</html>");
   assert.deepEqual(english.calls.map((call) => call.pathname), ["/en/index.html"]);
+  assert.equal(english.response.headers.get("x-content-type-options"), "nosniff");
+  assert.equal(english.response.headers.get("referrer-policy"), "strict-origin-when-cross-origin");
+  assert.equal(english.response.headers.get("access-control-allow-origin"), "*");
 
   const persian = await simulateRequest("https://abdolirad.ir/articles/");
   assert.equal(persian.body, "<html>fa-articles</html>");
@@ -65,22 +77,26 @@ test("hosts select a language, page, asset, 404, and slash redirect", async () =
   const local = await simulateRequest("http://fa.localhost:8787/");
   assert.equal(local.body, "<html>fa-home</html>");
 
+  const head = await simulateRequest("https://abdolirad.me/", { method: "HEAD" });
+  assert.equal(head.response.status, 200);
+  assert.equal(head.body, "");
+});
+
+test("assets and directory redirects stay on the host language", async () => {
   const css = await simulateRequest("https://abdolirad.ir/assets/css/site.css?v=1");
   assert.equal(css.response.status, 200);
   assert.equal(css.response.headers.get("content-type"), "text/css");
   assert.equal(css.calls[0].pathname, "/fa/assets/css/site.css");
 
-  const missing = await simulateRequest("https://abdolirad.ir/missing");
-  assert.equal(missing.response.status, 404);
-  assert.equal(missing.body, "<html>fa-404</html>");
-
   const redirect = await simulateRequest("https://abdolirad.me/articles?x=1");
   assert.equal(redirect.response.status, 308);
   assert.equal(redirect.response.headers.get("location"), "/articles/?x=1");
+});
 
-  const head = await simulateRequest("https://abdolirad.me/", { method: "HEAD" });
-  assert.equal(head.response.status, 200);
-  assert.equal(head.body, "");
+test("unknown paths and hosts stay inside one language", async () => {
+  const missing = await simulateRequest("https://abdolirad.ir/missing");
+  assert.equal(missing.response.status, 404);
+  assert.equal(missing.body, "<html>fa-404</html>");
 
   const isolated = await simulateRequest("https://abdolirad.me/fa/only-fa.txt");
   assert.equal(isolated.response.status, 404);
@@ -90,6 +106,49 @@ test("hosts select a language, page, asset, 404, and slash redirect", async () =
   const unknown = await simulateRequest("https://example.com/");
   assert.equal(unknown.response.status, 404);
   assert.equal(unknown.calls.length, 0);
+});
+
+test("unsupported methods are rejected", async () => {
+  const post = await simulateRequest("https://abdolirad.me/", { method: "POST" });
+  assert.equal(post.response.status, 405);
+  assert.equal(post.response.headers.get("allow"), "GET, HEAD");
+  assert.match(post.body, /Method not allowed/);
+  assert.equal(post.calls.length, 0);
+
+  const preview = await simulateRequest(`${PREVIEW}/`, { method: "POST" });
+  assert.equal(preview.response.status, 405);
+  assert.equal(preview.response.headers.get("x-robots-tag"), "noindex, nofollow");
+});
+
+test("published welcome article paths redirect permanently", async () => {
+  const english = await simulateRequest("https://abdolirad.me/articles/welcome-to-my-blog/");
+  assert.equal(english.response.status, 301);
+  assert.equal(english.response.headers.get("location"), "/articles/the-decisions-behind-the-code/");
+  assert.equal(english.calls.length, 0);
+
+  const persian = await simulateRequest("https://abdolirad.ir/articles/welcome-to-my-blog");
+  assert.equal(persian.response.status, 301);
+  assert.equal(persian.response.headers.get("location"), "/articles/the-decisions-behind-the-code/");
+  assert.equal(persian.calls.length, 0);
+
+  const query = await simulateRequest("https://abdolirad.me/articles/welcome-to-my-blog/?utm=old");
+  assert.equal(query.response.headers.get("location"), "/articles/the-decisions-behind-the-code/?utm=old");
+
+  const head = await simulateRequest("https://abdolirad.ir/articles/welcome-to-my-blog/", { method: "HEAD" });
+  assert.equal(head.response.status, 301);
+  assert.equal(head.body, "");
+
+  const prefixed = await simulateRequest(`${PREVIEW}/fa/articles/welcome-to-my-blog/`);
+  assert.equal(prefixed.response.status, 301);
+  assert.equal(prefixed.response.headers.get("location"), "/fa/articles/the-decisions-behind-the-code/");
+  assert.equal(prefixed.response.headers.get("x-robots-tag"), "noindex, nofollow");
+
+  const current = await simulateRequest("https://abdolirad.me/articles/the-decisions-behind-the-code/");
+  assert.equal(current.response.status, 200);
+  assert.equal(current.body, "<html>en-post</html>");
+
+  const nested = await simulateRequest("https://abdolirad.me/articles/welcome-to-my-blog/extra");
+  assert.equal(nested.response.status, 404);
 });
 
 test("conditional requests stay 304, and slash probes ignore them", async () => {
@@ -130,38 +189,36 @@ test("encoded paths and Persian slugs keep their public form", async () => {
 });
 
 test("preview hosts serve both languages and stay out of search indexes", async () => {
-  const preview = "https://switch-homepage-to-home-info-abdolirad.example.workers.dev";
-
-  const english = await simulateRequest(`${preview}/`);
+  const english = await simulateRequest(`${PREVIEW}/`);
   assert.equal(english.body, "<html>en-home</html>");
   assert.equal(english.response.headers.get("x-robots-tag"), "noindex, nofollow");
   assert.equal(english.calls[0].pathname, "/en/index.html");
 
-  const query = await simulateRequest(`${preview}/articles/?lang=fa`);
+  const query = await simulateRequest(`${PREVIEW}/articles/?lang=fa`);
   assert.equal(query.body, "<html>fa-articles</html>");
   assert.equal(query.calls[0].pathname, "/fa/articles/index.html");
 
-  const prefixed = await simulateRequest(`${preview}/fa/articles`);
+  const prefixed = await simulateRequest(`${PREVIEW}/fa/articles`);
   assert.equal(prefixed.response.status, 308);
   assert.equal(prefixed.response.headers.get("location"), "/fa/articles/");
   assert.equal(prefixed.response.headers.get("x-robots-tag"), "noindex, nofollow");
-  const prefixedPage = await simulateRequest(`${preview}/fa/articles/`);
+  const prefixedPage = await simulateRequest(`${PREVIEW}/fa/articles/`);
   assert.equal(prefixedPage.body, "<html>fa-articles</html>");
 
-  const header = await simulateRequest(`${preview}/`, { headers: { "x-blog-host": "abdolirad.ir" } });
+  const header = await simulateRequest(`${PREVIEW}/`, { headers: { "x-blog-host": "abdolirad.ir" } });
   assert.equal(header.body, "<html>fa-home</html>");
 
-  const pathWins = await simulateRequest(`${preview}/fa/?lang=en`);
+  const pathWins = await simulateRequest(`${PREVIEW}/fa/?lang=en`);
   assert.equal(pathWins.body, "<html>fa-home</html>");
 
-  const invalid = await simulateRequest(`${preview}/?lang=de`);
+  const invalid = await simulateRequest(`${PREVIEW}/?lang=de`);
   assert.equal(invalid.response.status, 404);
   assert.equal(invalid.response.headers.get("x-robots-tag"), "noindex, nofollow");
 
-  const badHeader = await simulateRequest(`${preview}/`, { headers: { "x-blog-host": "example.com" } });
+  const badHeader = await simulateRequest(`${PREVIEW}/`, { headers: { "x-blog-host": "example.com" } });
   assert.equal(badHeader.response.status, 404);
 
-  const robots = await simulateRequest(`${preview}/robots.txt`);
+  const robots = await simulateRequest(`${PREVIEW}/robots.txt`);
   assert.equal(robots.response.status, 200);
   assert.match(robots.body, /Disallow:\s*\//);
   assert.equal(robots.calls.length, 0);
@@ -176,35 +233,33 @@ test("preview hosts serve both languages and stay out of search indexes", async 
 });
 
 test("preview assets, redirects, and validators stay valid", async () => {
-  const preview = "https://switch-homepage-to-home-info-abdolirad.example.workers.dev";
-
-  const css = await simulateRequest(`${preview}/assets/css/site.css`);
+  const css = await simulateRequest(`${PREVIEW}/assets/css/site.css`);
   assert.equal(css.response.status, 200);
   assert.equal(css.response.headers.get("content-type"), "text/css");
   assert.equal(css.body, "body{}");
   assert.equal(css.response.headers.get("etag"), ETAG);
   assert.equal(css.calls[0].pathname, "/en/assets/css/site.css");
 
-  const persianCss = await simulateRequest(`${preview}/fa/assets/css/site.css`);
+  const persianCss = await simulateRequest(`${PREVIEW}/fa/assets/css/site.css`);
   assert.equal(persianCss.response.status, 200);
   assert.equal(persianCss.body, "body{}");
   assert.equal(persianCss.calls[0].pathname, "/fa/assets/css/site.css");
 
-  const head = await simulateRequest(`${preview}/`, { method: "HEAD" });
+  const head = await simulateRequest(`${PREVIEW}/`, { method: "HEAD" });
   assert.equal(head.response.status, 200);
   assert.equal(head.body, "");
   assert.equal(head.response.headers.get("etag"), ETAG);
   assert.equal(head.response.headers.get("content-type"), "text/html");
 
-  const fresh = await simulateRequest(`${preview}/`, { headers: { "if-none-match": ETAG } });
+  const fresh = await simulateRequest(`${PREVIEW}/`, { headers: { "if-none-match": ETAG } });
   assert.equal(fresh.response.status, 304);
   assert.equal(fresh.body, "");
   assert.equal(fresh.response.headers.get("etag"), ETAG);
 
-  const redirect = await simulateRequest(`${preview}/en/articles`);
+  const redirect = await simulateRequest(`${PREVIEW}/en/articles`);
   assert.equal(redirect.response.status, 308);
   assert.equal(redirect.response.headers.get("location"), "/en/articles/");
-  const page = await simulateRequest(`${preview}/en/articles/`);
+  const page = await simulateRequest(`${PREVIEW}/en/articles/`);
   assert.equal(page.response.status, 200);
   assert.equal(page.body, "<html>en-articles</html>");
 
