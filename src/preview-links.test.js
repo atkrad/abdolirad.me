@@ -7,50 +7,50 @@ import { rewritePreviewHref } from "./preview-links.js";
 const PREVIEW = "https://switch-homepage-to-home-info-abdolirad.example.workers.dev";
 
 test("preview hrefs map production hosts and keep everything else", () => {
-  assert.equal(rewritePreviewHref("https://abdolirad.me/", "en"), "/en/");
-  assert.equal(rewritePreviewHref("https://abdolirad.me", "en"), "/en/");
-  assert.equal(rewritePreviewHref("https://abdolirad.me/articles/", "en"), "/en/articles/");
-  assert.equal(rewritePreviewHref("https://abdolirad.ir/", "fa"), "/fa/");
-  assert.equal(rewritePreviewHref("https://abdolirad.ir/articles/", "fa"), "/fa/articles/");
-  assert.equal(rewritePreviewHref("http://abdolirad.me/articles/", "en"), "/en/articles/");
-  assert.equal(rewritePreviewHref("//abdolirad.ir/archives/", "en"), "/fa/archives/");
-  assert.equal(rewritePreviewHref("https://ABDOLIRAD.me/Articles/", "en"), "/en/Articles/");
-  assert.equal(rewritePreviewHref("https://abdolirad.me:443/articles/", "en"), "/en/articles/");
-  assert.equal(rewritePreviewHref("https://abdolirad.me./articles/", "en"), "/en/articles/");
-  assert.equal(
-    rewritePreviewHref("https://abdolirad.me/articles/?page=2#results", "fa"),
-    "/en/articles/?page=2#results",
-  );
-  assert.equal(
-    rewritePreviewHref("https://abdolirad.ir/%D9%85%D9%82%D8%A7%D9%84%D9%87/?q=a%20b#x", "en"),
-    "/fa/%D9%85%D9%82%D8%A7%D9%84%D9%87/?q=a%20b#x",
-  );
-  assert.equal(rewritePreviewHref("  https://abdolirad.me/  ", "en"), "/en/");
+  const cases = [
+    ["https://abdolirad.me/", "en", "/en/"],
+    ["https://abdolirad.me", "en", "/en/"],
+    ["https://abdolirad.me/articles/", "en", "/en/articles/"],
+    ["https://abdolirad.ir/", "fa", "/fa/"],
+    ["https://abdolirad.ir/articles/", "fa", "/fa/articles/"],
+    ["http://abdolirad.me/articles/", "en", "/en/articles/"],
+    ["//abdolirad.ir/archives/", "en", "/fa/archives/"],
+    ["https://ABDOLIRAD.me/Articles/", "en", "/en/Articles/"],
+    ["https://abdolirad.me:443/articles/", "en", "/en/articles/"],
+    ["https://abdolirad.me./articles/", "en", "/en/articles/"],
+    ["https://abdolirad.me/articles/?page=2#results", "fa", "/en/articles/?page=2#results"],
+    ["https://abdolirad.ir/%D9%85%D9%82%D8%A7%D9%84%D9%87/?q=a%20b#x", "en", "/fa/%D9%85%D9%82%D8%A7%D9%84%D9%87/?q=a%20b#x"],
+    ["  https://abdolirad.me/  ", "en", "/en/"],
+    ["/", "fa", "/fa/"],
+    ["/articles/", "fa", "/fa/articles/"],
+    ["/index.xml", "en", "/en/index.xml"],
+    ["/articles/?a=1&b=2#z", "en", "/en/articles/?a=1&b=2#z"],
+    ["/en/articles/", "fa", "/en/articles/"],
+    ["/fa/", "en", "/fa/"],
+    ["/assets/css/site.css?v=1", "fa", "/assets/css/site.css?v=1"],
+    ["/favicon.ico", "en", "/favicon.ico"],
+    ["#top", "fa", "#top"],
+    ["#2025-%da%98", "fa", "#2025-%da%98"],
+    ["articles/", "en", "articles/"],
+    ["mailto:m.abdolirad@gmail.com", "en", "mailto:m.abdolirad@gmail.com"],
+    ["javascript:alert(1)", "en", "javascript:alert(1)"],
+    ["https://github.com/atkrad", "en", "https://github.com/atkrad"],
+    ["https://not-abdolirad.me/", "en", "https://not-abdolirad.me/"],
+    ["https://abdolirad.me.evil.com/", "en", "https://abdolirad.me.evil.com/"],
+    ["https://abdolirad.me:8443/articles/", "en", "https://abdolirad.me:8443/articles/"],
+    ["https://user:pass@abdolirad.me/", "en", "https://user:pass@abdolirad.me/"],
+    [
+      "https://x.com/intent/tweet/?url=https%3a%2f%2fabdolirad.me%2f",
+      "en",
+      "https://x.com/intent/tweet/?url=https%3a%2f%2fabdolirad.me%2f",
+    ],
+    ["", "en", ""],
+    ["/articles/", "", "/articles/"],
+  ];
 
-  assert.equal(rewritePreviewHref("/", "fa"), "/fa/");
-  assert.equal(rewritePreviewHref("/articles/", "fa"), "/fa/articles/");
-  assert.equal(rewritePreviewHref("/index.xml", "en"), "/en/index.xml");
-  assert.equal(rewritePreviewHref("/articles/?a=1&b=2#z", "en"), "/en/articles/?a=1&b=2#z");
-  assert.equal(rewritePreviewHref("/en/articles/", "fa"), "/en/articles/");
-  assert.equal(rewritePreviewHref("/fa/", "en"), "/fa/");
-  assert.equal(rewritePreviewHref("/assets/css/site.css?v=1", "fa"), "/assets/css/site.css?v=1");
-  assert.equal(rewritePreviewHref("/favicon.ico", "en"), "/favicon.ico");
-  assert.equal(rewritePreviewHref("#top", "fa"), "#top");
-  assert.equal(rewritePreviewHref("#2025-%da%98", "fa"), "#2025-%da%98");
-  assert.equal(rewritePreviewHref("articles/", "en"), "articles/");
-  assert.equal(rewritePreviewHref("mailto:m.abdolirad@gmail.com", "en"), "mailto:m.abdolirad@gmail.com");
-  assert.equal(rewritePreviewHref("javascript:alert(1)", "en"), "javascript:alert(1)");
-  assert.equal(rewritePreviewHref("https://github.com/atkrad", "en"), "https://github.com/atkrad");
-  assert.equal(rewritePreviewHref("https://not-abdolirad.me/", "en"), "https://not-abdolirad.me/");
-  assert.equal(rewritePreviewHref("https://abdolirad.me.evil.com/", "en"), "https://abdolirad.me.evil.com/");
-  assert.equal(rewritePreviewHref("https://abdolirad.me:8443/articles/", "en"), "https://abdolirad.me:8443/articles/");
-  assert.equal(rewritePreviewHref("https://user:pass@abdolirad.me/", "en"), "https://user:pass@abdolirad.me/");
-  assert.equal(
-    rewritePreviewHref("https://x.com/intent/tweet/?url=https%3a%2f%2fabdolirad.me%2f", "en"),
-    "https://x.com/intent/tweet/?url=https%3a%2f%2fabdolirad.me%2f",
-  );
-  assert.equal(rewritePreviewHref("", "en"), "");
-  assert.equal(rewritePreviewHref("/articles/", ""), "/articles/");
+  for (const [href, lang, expected] of cases) {
+    assert.equal(rewritePreviewHref(href, lang), expected, `${lang} ${href}`);
+  }
 });
 
 test("HTMLRewriter keeps preview navigation inside the deployment", async () => {
@@ -98,16 +98,16 @@ test("HTMLRewriter keeps preview navigation inside the deployment", async () => 
     assert.equal(englishHome.headers.get("x-robots-tag"), "noindex, nofollow");
     assert.equal(englishHome.headers.get("etag"), null);
     assert.equal(englishHome.headers.get("content-length"), null);
-    assert.deepEqual(anchorHrefs(englishHome.body), expectedAnchors("en", "https://abdolirad.me/", "fa"));
-    assertProductionMetadata(englishHome.body, "https://abdolirad.me/articles/welcome/");
+    assertPreviewAnchors(englishHome.body, "en", "fa");
+    assertProductionMetadata(englishHome.body, "https://abdolirad.me/articles/sample/");
 
     const bare = await dispatch(mf, `${PREVIEW}/`);
-    assert.deepEqual(anchorHrefs(bare.body), expectedAnchors("en", "https://abdolirad.me/", "fa"));
+    assertPreviewAnchors(bare.body, "en", "fa");
 
     const persianHome = await dispatch(mf, `${PREVIEW}/fa/`);
     assert.equal(persianHome.headers.get("x-robots-tag"), "noindex, nofollow");
-    assert.deepEqual(anchorHrefs(persianHome.body), expectedAnchors("fa", "https://abdolirad.ir/", "en"));
-    assertProductionMetadata(persianHome.body, "https://abdolirad.ir/articles/welcome/");
+    assertPreviewAnchors(persianHome.body, "fa", "en");
+    assertProductionMetadata(persianHome.body, "https://abdolirad.ir/articles/sample/");
 
     const missing = await dispatch(mf, `${PREVIEW}/fa/missing`);
     assert.equal(missing.status, 404);
@@ -154,13 +154,13 @@ test("HTMLRewriter keeps preview navigation inside the deployment", async () => 
 });
 
 function page(home, other) {
-  const article = `${home}articles/welcome-to-my-blog/`;
+  const article = `${home}articles/sample/`;
   const share = `https://x.com/intent/tweet/?url=${encodeURIComponent(article)}&amp;text=Hi`;
-  const canonical = `${home}articles/welcome/`;
+  const canonical = `${home}articles/sample/`;
   return `<!doctype html><html><head>
 <link rel=canonical href=${canonical}>
-<link rel=alternate hreflang=en href=https://abdolirad.me/articles/welcome/>
-<link rel=alternate hreflang=fa href=https://abdolirad.ir/articles/welcome/>
+<link rel=alternate hreflang=en href=https://abdolirad.me/articles/sample/>
+<link rel=alternate hreflang=fa href=https://abdolirad.ir/articles/sample/>
 <meta property=og:url content=${canonical}>
 <link rel=stylesheet href=/assets/css/site.css>
 <script type=application/ld+json>{"url":"${canonical}"}</script>
@@ -169,7 +169,7 @@ function page(home, other) {
 <a href=${home}articles/>articles</a>
 <a href=${home}archives/>archives</a>
 <a href=${article}>post</a>
-<a href=${other}articles/welcome-to-my-blog/>switch</a>
+<a href=${other}articles/sample/>switch</a>
 <a href="${home}articles/?page=2#results">page</a>
 <a href="${home}%D9%85%D9%82%D8%A7%D9%84%D9%87/?q=a%20b#x">slug</a>
 <a href="${home}articles/?a=1&amp;b=2#z">query</a>
@@ -187,29 +187,36 @@ function page(home, other) {
 </body></html>`;
 }
 
-function expectedAnchors(lang, home, otherLang) {
-  const article = `${home}articles/welcome-to-my-blog/`;
-  return [
+function assertPreviewAnchors(html, lang, otherLang) {
+  const hrefs = anchorHrefs(html);
+  const home = lang === "en" ? "https://abdolirad.me/" : "https://abdolirad.ir/";
+  for (const href of [
     `/${lang}/`,
     `/${lang}/articles/`,
     `/${lang}/archives/`,
-    `/${lang}/articles/welcome-to-my-blog/`,
-    `/${otherLang}/articles/welcome-to-my-blog/`,
+    `/${lang}/index.xml`,
+    `/${lang}/articles/sample/`,
+    `/${otherLang}/articles/sample/`,
     `/${lang}/articles/?page=2#results`,
     `/${lang}/%D9%85%D9%82%D8%A7%D9%84%D9%87/?q=a%20b#x`,
     `/${lang}/articles/?a=1&b=2#z`,
-    `/${lang}/`,
-    `/${lang}/articles/`,
-    `/${lang}/index.xml`,
     "/assets/css/site.css",
     "#top",
     "https://github.com/atkrad",
     "mailto:m.abdolirad@gmail.com",
-    `https://x.com/intent/tweet/?url=${encodeURIComponent(article)}&text=Hi`,
     "https://not-abdolirad.me/",
     "https://abdolirad.me.evil.com/",
     `https://user:pass@${home.slice("https://".length)}secret`,
-  ];
+    `https://x.com/intent/tweet/?url=${encodeURIComponent(`${home}articles/sample/`)}&text=Hi`,
+  ]) {
+    assert.ok(hrefs.includes(href), href);
+  }
+
+  for (const href of hrefs) {
+    const url = new URL(href, "https://preview.example/");
+    const production = (url.protocol === "http:" || url.protocol === "https:") && !url.username && (url.hostname === "abdolirad.me" || url.hostname === "abdolirad.ir");
+    assert.equal(production, false, href);
+  }
 }
 
 function assertProductionMetadata(html, canonical) {
@@ -222,8 +229,8 @@ function assertProductionMetadata(html, canonical) {
     links.find((link) => link.rel === "canonical"),
     { rel: "canonical", hreflang: null, href: canonical },
   );
-  assert.equal(links.find((link) => link.hreflang === "en")?.href, "https://abdolirad.me/articles/welcome/");
-  assert.equal(links.find((link) => link.hreflang === "fa")?.href, "https://abdolirad.ir/articles/welcome/");
+  assert.equal(links.find((link) => link.hreflang === "en")?.href, "https://abdolirad.me/articles/sample/");
+  assert.equal(links.find((link) => link.hreflang === "fa")?.href, "https://abdolirad.ir/articles/sample/");
   assert.equal(links.find((link) => link.rel === "stylesheet")?.href, "/assets/css/site.css");
   const og = tags(html, "meta").map((tag) => attribute(tag, "content"));
   assert.ok(og.includes(canonical));

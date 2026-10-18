@@ -1,6 +1,6 @@
 baseURL: "https://abdolirad.me/"
 locale: "en-us"
-title: M. Abdolirad
+title: Mohammad Abdolirad
 
 enableRobotsTXT: true
 defaultContentLanguage: en
@@ -21,6 +21,9 @@ languages:
         - name: Archives
           pageRef: /archives
           weight: 20
+        - name: About
+          pageRef: /about
+          weight: 30
     params:
       label:
         text: "The Other Branch"
@@ -39,6 +42,9 @@ languages:
         - name: آرشیو
           pageRef: /archives
           weight: 20
+        - name: "دربارهٔ من"
+          pageRef: /about
+          weight: 30
     title: محمد عبدلی‌راد
     params:
       label:
@@ -65,7 +71,7 @@ params:
   ShowBreadCrumbs: true
   ShowCodeCopyButtons: true
   ShowRssButtonInSectionTermList: true
-  ShowAllPagesInArchive: true
+  ShowAllPagesInArchive: false
   ShowPageNums: true
   ShowToc: true
   profileMode:

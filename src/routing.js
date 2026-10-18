@@ -10,6 +10,10 @@ const PREVIEW_LANG_QUERY = "lang";
 const PREVIEW_ROBOTS = "User-agent: *\nDisallow: /\n";
 
 const LANGUAGE_PREFIXES = new Set(["en", "fa"]);
+
+// Both languages published the welcome article at this path.
+const WELCOME_ARTICLE = "/articles/welcome-to-my-blog";
+const WELCOME_ARTICLE_TARGET = "/articles/the-decisions-behind-the-code/";
 const CONDITIONAL_HEADERS = [
   "if-none-match",
   "if-modified-since",
@@ -172,6 +176,9 @@ function found(status) {
 }
 
 async function serve(request, env, lang, pathname, preview) {
+  const moved = permanentMove(pathname);
+  if (moved) return redirect(request, moved, undefined, preview, 301);
+
   const canonicalIndex = indexCanonical(pathname);
   if (canonicalIndex && canonicalIndex !== pathname) {
     const indexFile = languageFile(lang, pathname.endsWith("/index") ? `${pathname}.html` : pathname);
@@ -269,7 +276,13 @@ function stripLanguage(pathname, lang) {
   return null;
 }
 
-function redirect(request, pathname, search, preview = { enabled: false, prefix: "" }) {
+function permanentMove(pathname) {
+  const bare = pathname.length > 1 && pathname.endsWith("/") ? pathname.slice(0, -1) : pathname;
+  if (bare === WELCOME_ARTICLE) return WELCOME_ARTICLE_TARGET;
+  return "";
+}
+
+function redirect(request, pathname, search, preview = { enabled: false, prefix: "" }, status = 308) {
   const current = new URL(request.url);
   if (preview.prefix) {
     pathname = pathname === "/" ? `/${preview.prefix}/` : `/${preview.prefix}${pathname}`;
@@ -287,7 +300,7 @@ function redirect(request, pathname, search, preview = { enabled: false, prefix:
   const headers = new Headers({ location });
   applySecurity(headers);
   markPreview(headers, preview);
-  return new Response(null, { status: 308, headers });
+  return new Response(null, { status, headers });
 }
 
 function exposesLanguagePrefix(pathname) {
