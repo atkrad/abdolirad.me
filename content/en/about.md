@@ -4,6 +4,10 @@ title: "About Me"
 url: "/about/"
 hiddenInRss: true
 summary: "I'm Mohammad Abdolirad, a software and platform engineer based in the Netherlands."
+keywords:
+  - Mohammad Abdolirad
+  - software engineer
+  - Netherlands
 ---
 I'm Mohammad Abdolirad, a software and platform engineer based in the Netherlands.
 

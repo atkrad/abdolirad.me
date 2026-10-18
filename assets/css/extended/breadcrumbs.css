@@ -1,0 +1,4 @@
+/* PaperMod draws a right-pointing chevron. Flip that glyph on RTL pages. */
+html[dir="rtl"] .breadcrumbs svg {
+    transform: scaleX(-1);
+}

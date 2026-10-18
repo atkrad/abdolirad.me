@@ -1,0 +1,10 @@
+{{- $dates := hugo.Data.persianDates -}}
+{{- if not $dates -}}
+{{- errorf "missing data/persianDates.json; npm run build generates Persian dates before Hugo" -}}
+{{- end -}}
+{{- $key := .time.Format "2006-01-02T15:04:05Z07:00" -}}
+{{- $hit := index $dates $key -}}
+{{- if not $hit -}}
+{{- errorf "no Persian date for %q (%s). The generator reads front matter dates before Hugo runs." $key .name -}}
+{{- end -}}
+{{- return $hit -}}

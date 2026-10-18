@@ -6,6 +6,13 @@ enableRobotsTXT: true
 defaultContentLanguage: en
 defaultContentLanguageInSubdir: true
 
+permalinks:
+  page:
+    articles: "/articles/:slugorcontentbasename/"
+
+# Duplicate output paths are warnings. The build script passes --panicOnWarning so they stop the build.
+printPathWarnings: true
+
 languages:
   en:
     baseURL: "https://abdolirad.me/"
@@ -27,6 +34,10 @@ languages:
     params:
       label:
         text: "The Other Branch"
+      keywords:
+        - software engineering
+        - platform engineering
+        - Mohammad Abdolirad
     weight: 1
   fa:
     baseURL: "https://abdolirad.ir/"
@@ -39,7 +50,7 @@ languages:
         - name: مقالات
           pageRef: /articles
           weight: 10
-        - name: آرشیو
+        - name: بایگانی
           pageRef: /archives
           weight: 20
         - name: "دربارهٔ من"
@@ -49,12 +60,16 @@ languages:
     params:
       label:
         text: "شاخهٔ دیگر"
+      keywords:
+        - مهندسی نرم‌افزار
+        - تجربهٔ توسعه‌دهنده
+        - محمد عبدلی‌راد
       homeInfoParams:
         Title: "محمد عبدلی‌راد"
         Content: |
           ## مهندس نرم‌افزار و پلتفرم
 
-          من نرم‌افزار و ابزارهایی برای توسعه‌دهندگان می‌سازم. در طراحی آن‌ها، سادگی، قابل‌اعتماد بودن و تجربهٔ توسعه‌دهنده برایم اهمیت زیادی دارد. اینجا دربارهٔ تصمیم‌های مهندسی، چالش‌های واقعی و چیزهایی که در این مسیر یاد می‌گیرم، می‌نویسم.
+          من نرم‌افزار و ابزارهایی برای توسعه‌دهندگان می‌سازم. در طراحی آن‌ها، سادگی، قابل اعتماد بودن و تجربهٔ توسعه‌دهنده برایم اهمیت زیادی دارد. اینجا دربارهٔ تصمیم‌های مهندسی، چالش‌های واقعی و چیزهایی که در این مسیر یاد می‌گیرم، می‌نویسم.
     weight: 2
 
 module:

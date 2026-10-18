@@ -2,7 +2,12 @@
 date: '2026-10-18T10:16:00+02:00'
 draft: false
 title: 'The Decisions Behind the Code'
+slug: "the-decisions-behind-the-code"
 summary: 'I can usually look at a piece of code and understand what it does. The harder question is why it was written that way.'
+keywords:
+  - engineering decisions
+  - software design
+  - API design
 ---
 I can usually look at a piece of code and understand what it does. The harder question is why it was written that way.
 

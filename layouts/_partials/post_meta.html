@@ -1,0 +1,34 @@
+{{- /* Visible date is .PublishDate. Persian pages use the Jalali form. */ -}}
+{{- $scratch := newScratch }}
+
+{{- if not .PublishDate.IsZero -}}
+    {{- if eq .Lang "fa" -}}
+        {{- $fa := partial "persian_date.html" (dict "time" .PublishDate "name" .RelPermalink) -}}
+        {{- $iso := .PublishDate.Format "2006-01-02T15:04:05Z07:00" -}}
+        {{- $scratch.Add "meta" (slice (printf "<time datetime=%q>%s</time>" $iso $fa.display)) }}
+    {{- else -}}
+        {{- $scratch.Add "meta" (slice (printf "<span title='%s'>%s</span>" (.PublishDate) (.PublishDate | time.Format (default ":date_long" site.Params.DateFormat)))) }}
+    {{- end -}}
+{{- end }}
+
+{{- if (.Param "ShowReadingTime") -}}
+    {{- $read := i18n "read_time" .ReadingTime | default (printf "%d min" .ReadingTime) -}}
+    {{- if eq .Lang "fa" }}{{ $read = partial "persian_digits.html" $read }}{{ end -}}
+    {{- $scratch.Add "meta" (slice (printf "<span>%s</span>" $read)) }}
+{{- end }}
+
+{{- if (.Param "ShowWordCount") -}}
+    {{- $scratch.Add "meta" (slice (printf "<span>%s</span>" (i18n "words" .WordCount | default (printf "%d words" .WordCount)))) }}
+{{- end }}
+
+{{- if not (.Param "hideAuthor") -}}
+    {{- with (partial "author.html" .) }}
+        {{- $scratch.Add "meta" (slice (printf "<span>%s</span>" .)) }}
+    {{- end }}
+{{- end }}
+
+{{/* Combine all meta information into a single string with separators and render it as HTML.*/}}
+
+{{- with ($scratch.Get "meta") }}
+    {{- delimit . "&nbsp;·&nbsp;" | safeHTML -}}
+{{- end -}}

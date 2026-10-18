@@ -3,6 +3,7 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
+import { jalaliYear, persianDate } from "./persian-dates.js";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -11,10 +12,13 @@ const SITES = [
   { lang: "fa", origin: "https://abdolirad.ir", direction: "rtl" },
 ];
 
-// Pages published in both languages at the same path.
-// The article is one intentional pair, not a rule for every future article.
-const BILINGUAL_PATHS = ["/", "/about/", "/articles/", "/archives/", "/articles/the-decisions-behind-the-code/"];
-const RETIRED_ARTICLE = "welcome-to-my-blog";
+// Menu pages that exist in both languages. Article pairs come from the sitemap.
+const BILINGUAL_PATHS = ["/", "/about/", "/articles/", "/archives/"];
+
+const PERSIAN_MONTHS = ["فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "شهریور", "مهر", "آبان", "آذر", "دی", "بهمن", "اسفند"];
+const ENGLISH_MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+const PERSIAN_DIGITS = "۰۱۲۳۴۵۶۷۸۹";
+const ISO_STAMP = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:Z|[+-]\d{2}:\d{2})$/;
 
 function read(relative) {
   const file = path.join(root, relative);
@@ -24,6 +28,36 @@ function read(relative) {
 
 function otherSite(site) {
   return SITES.find((item) => item.lang !== site.lang);
+}
+
+function decode(value) {
+  return value.replaceAll("&#43;", "+").replaceAll("&amp;", "&");
+}
+
+function assertArchiveFragments(html) {
+  const anchors = [...html.matchAll(/<h[23]\b[^>]*class="?archive-(?:year|month)-header\b[^>]*>[\s\S]*?<\/h[23]>/g)].map(
+    (match) => {
+      const open = match[0].match(/<h[23]\b[^>]*>/)?.[0] ?? "";
+      const link = match[0].match(/<a\b[^>]*>/)?.[0] ?? "";
+      return { id: attributes(open).id, href: attributes(link).href };
+    },
+  );
+  const ids = [...html.matchAll(/\bid=(?:"([^"]*)"|([^\s>]+))/g)].map((match) => match[1] ?? match[2]);
+  assert.ok(anchors.length > 1);
+  assert.equal(new Set(anchors.map((anchor) => anchor.id)).size, anchors.length);
+  for (const anchor of anchors) {
+    assert.equal(anchor.href.startsWith("#"), true, anchor.href);
+    assert.equal(anchor.href.includes("/"), false, anchor.href);
+    assert.equal(decodeURIComponent(anchor.href), `#${decode(anchor.id)}`);
+    assert.equal(ids.filter((id) => id === anchor.id).length, 1, anchor.id);
+  }
+}
+
+function times(html) {
+  return [...html.matchAll(/<time\b([^>]*)>([^<]*)<\/time>/gi)].map((match) => ({
+    datetime: decode(attributes(match[0]).datetime ?? ""),
+    text: match[2],
+  }));
 }
 
 function attributes(tag) {
@@ -56,6 +90,7 @@ function sitemapEntries(xml) {
     .slice(1)
     .map((block) => ({
       loc: block.match(/<loc>([^<]+)<\/loc>/)?.[1],
+      lastmod: block.match(/<lastmod>([^<]*)<\/lastmod>/)?.[1] ?? null,
       alternates: [...block.matchAll(/hreflang="([^"]+)" href="([^"]+)"/g)].map((match) => ({
         locale: match[1],
         href: match[2],
@@ -146,8 +181,6 @@ test("sitemaps stay on their domain and translations are reciprocal", () => {
     const xml = read(`public/${site.lang}/sitemap.xml`);
     const entries = sitemapEntries(xml);
     assert.ok(entries.length > 0, site.lang);
-    assert.equal(xml.includes(RETIRED_ARTICLE), false);
-    assert.equal(existsSync(path.join(root, "public", site.lang, "articles", RETIRED_ARTICLE, "index.html")), false);
 
     for (const entry of entries) {
       const page = new URL(entry.loc);
@@ -197,18 +230,17 @@ test("pages publish the canonical url and hreflang links from the sitemap", () =
   }
 });
 
-test("each language publishes at least one article", () => {
-  for (const site of SITES) {
-    assert.ok(publishedArticlePaths(site.lang).length > 0, `${site.lang} has no published articles`);
-  }
-});
-
 test("rss feeds list the published articles", () => {
   for (const site of SITES) {
     const xml = read(`public/${site.lang}/index.xml`);
     assert.match(xml, /<rss\b/);
     assert.match(xml, /<channel>/);
-    assert.equal(xml.includes(RETIRED_ARTICLE), false);
+    if (site.lang === "fa") {
+      assert.match(xml, /<description>مطالب تازه در /);
+      assert.equal(xml.includes("Recent content"), false);
+    } else {
+      assert.match(xml, /<description>Recent content on /);
+    }
 
     const channelLink = xml.split("<item>")[0].match(/<link>([^<]+)<\/link>/)?.[1];
     assert.equal(new URL(channelLink).origin, site.origin);
@@ -230,5 +262,299 @@ test("archives list the published articles", () => {
       entries.map((entry) => entry.pathname).sort(),
       publishedArticlePaths(site.lang),
     );
+  }
+});
+
+function scriptNumber(text) {
+  const compact = text.replaceAll("&nbsp;", "").replaceAll("&#160;", "").trim();
+  const persian = [...compact].map((digit) => PERSIAN_DIGITS.indexOf(digit));
+  if (persian.length > 0 && persian.every((digit) => digit >= 0)) return Number(persian.join(""));
+  assert.match(compact, /^\d+$/, compact);
+  return Number(compact);
+}
+
+function gregorianLong(iso) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso);
+  assert.ok(match, iso);
+  return new Intl.DateTimeFormat("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3]))));
+}
+
+function metaTags(html) {
+  return [...html.matchAll(/<meta\b[^>]*>/gi)].map((match) => attributes(match[0]));
+}
+
+function metaContent(html, key) {
+  const found = metaTags(html).find((attrs) => attrs.property === key || attrs.name === key);
+  return found ? decode(found.content ?? "") : null;
+}
+
+function jsonField(html, name) {
+  return html.match(new RegExp(`"${name}"\\s*:\\s*"([^"]+)"`))?.[1] ?? null;
+}
+
+function metaBlocks(html) {
+  return [...html.matchAll(/<div class="?(?:post-meta|archive-meta)\b[^>]*>([\s\S]*?)<\/div>/g)].map((match) => match[1]);
+}
+
+function readingLabels(html) {
+  return metaBlocks(html).flatMap((block) =>
+    [...block.matchAll(/<span>([^<]+)<\/span>/g)]
+      .map((match) => match[1])
+      .filter((text) => text.endsWith(" min") || text.endsWith(" دقیقه")),
+  );
+}
+
+function englishDateSpans(html) {
+  return metaBlocks(html).flatMap((block) =>
+    [...block.matchAll(/<span title=(?:"([^"]+)"|'([^']+)')>([^<]+)<\/span>/g)].map((match) => ({
+      title: match[1] ?? match[2],
+      text: match[3],
+    })),
+  );
+}
+
+function countText(html) {
+  return html.match(/<sup\b[^>]*class="?archive-count\b[^>]*>([^<]*)<\/sup>/)?.[1] ?? "";
+}
+
+function archiveOutline(html) {
+  return html
+    .split(/<div class="?archive-year\b/)
+    .slice(1)
+    .map((yearHtml) => ({
+      year: yearHtml.match(/<h2\b[^>]*class="?archive-year-header\b[^>]*>[\s\S]*?<a\b[^>]*>([^<]+)<\/a>/)?.[1] ?? "",
+      count: countText(yearHtml.split(/<div class="?archive-month\b/)[0]),
+      months: yearHtml
+        .split(/<div class="?archive-month\b/)
+        .slice(1)
+        .map((monthHtml) => ({
+          month: monthHtml.match(/<h3\b[^>]*class="?archive-month-header\b[^>]*>[\s\S]*?<a\b[^>]*>([^<]+)<\/a>/)?.[1] ?? "",
+          count: countText(monthHtml),
+          entries: monthHtml.split(/<div class="?archive-entry\b/).length - 1,
+        })),
+    }));
+}
+
+function archiveEntryDetails(html) {
+  return html.split(/<div class="?archive-entry\b/).slice(1).map((entry) => {
+    const link = entry.match(/<a\b[^>]*class="?entry-link\b[^>]*>/)?.[0] ?? "";
+    return {
+      title: entry.match(/<h3\b[^>]*class="?archive-entry-title\b[^>]*>([\s\S]*?)<\/h3>/)?.[1].replace(/<[^>]+>/g, "").trim() ?? "",
+      label: attributes(link)["aria-label"] ?? "",
+    };
+  });
+}
+
+function rssPublications(xml) {
+  return [...xml.matchAll(/<item>([\s\S]*?)<\/item>/g)].map((match) => {
+    const link = match[1].match(/<link>([^<]+)<\/link>/)?.[1];
+    const pubDate = match[1].match(/<pubDate>([^<]+)<\/pubDate>/)?.[1];
+    assert.ok(link && pubDate, "rss item is missing a link or date");
+    return { url: new URL(link), pubDate };
+  });
+}
+
+function footerOf(html) {
+  return html.match(/<footer class="?footer\b[\s\S]*?<\/footer>/)?.[0] ?? "";
+}
+
+test("published dates stay consistent without fixed article dates", () => {
+  for (const site of SITES) {
+    const sitemap = new Map(sitemapEntries(read(`public/${site.lang}/sitemap.xml`)).map((entry) => [entry.loc, entry]));
+    const articles = new Set(publishedArticlePaths(site.lang));
+    const publishedByPath = new Map();
+
+    for (const [loc, entry] of sitemap) {
+      const pathname = new URL(loc).pathname;
+      const html = read(pageFile(site.lang, pathname));
+      const published = metaContent(html, "article:published_time");
+      const modified = metaContent(html, "article:modified_time");
+      if (entry.lastmod) {
+        assert.match(entry.lastmod, ISO_STAMP, loc);
+        assert.equal(/[۰-۹]/.test(entry.lastmod), false, loc);
+      }
+      if (articles.has(pathname)) assert.ok(published && modified, loc);
+      if (published) {
+        assert.match(published, ISO_STAMP, loc);
+        assert.equal(jsonField(html, "datePublished"), published, loc);
+        if (site.lang === "fa") {
+          assert.ok(
+            times(html).some((item) => item.datetime === published && item.text === persianDate(published).display),
+            loc,
+          );
+        } else {
+          assert.ok(englishDateSpans(html).some((item) => item.text === gregorianLong(published)), loc);
+        }
+        publishedByPath.set(pathname, published);
+      }
+      if (modified) {
+        assert.match(modified, ISO_STAMP, loc);
+        assert.equal(jsonField(html, "dateModified"), modified, loc);
+        assert.equal(entry.lastmod, modified, loc);
+      }
+      if (site.lang === "fa") {
+        for (const item of times(html)) {
+          assert.equal(item.text, persianDate(item.datetime).display, loc);
+        }
+      } else {
+        for (const item of englishDateSpans(html)) {
+          assert.equal(item.text, gregorianLong(item.title), loc);
+        }
+      }
+    }
+
+    for (const item of rssPublications(read(`public/${site.lang}/index.xml`))) {
+      assert.match(item.pubDate, /^[A-Z][a-z]{2}, \d{2} [A-Z][a-z]{2} \d{4} \d{2}:\d{2}:\d{2} [+-]\d{4}$/);
+      assert.equal(/[\u0600-\u06FF]/.test(item.pubDate), false, item.url.href);
+      assert.equal(Date.parse(item.pubDate), Date.parse(publishedByPath.get(item.url.pathname)), item.url.href);
+    }
+  }
+});
+
+test("archives group pages in descending order and local digits", () => {
+  for (const site of SITES) {
+    const html = read(`public/${site.lang}/archives/index.html`);
+    const outline = archiveOutline(html);
+    const monthNames = site.lang === "fa" ? PERSIAN_MONTHS : ENGLISH_MONTHS;
+    for (let index = 1; index < outline.length; index += 1) {
+      assert.ok(scriptNumber(outline[index].year) < scriptNumber(outline[index - 1].year));
+    }
+    let listed = 0;
+    for (const group of outline) {
+      assert.match(group.year, site.lang === "fa" ? /^[۰-۹]+$/ : /^\d+$/, group.year);
+      const monthIndexes = group.months.map((month) => monthNames.indexOf(month.month));
+      assert.ok(monthIndexes.every((index) => index >= 0), group.months.map((month) => month.month).join(","));
+      for (let index = 1; index < monthIndexes.length; index += 1) {
+        assert.ok(monthIndexes[index] < monthIndexes[index - 1], group.year);
+      }
+      assert.equal(scriptNumber(group.count), group.months.reduce((sum, month) => sum + month.entries, 0), group.year);
+      for (const month of group.months) {
+        assert.match(month.count.replaceAll("&nbsp;", "").replaceAll("&#160;", "").trim(), site.lang === "fa" ? /^[۰-۹]+$/ : /^\d+$/);
+        assert.equal(scriptNumber(month.count), month.entries, month.month);
+        listed += month.entries;
+      }
+    }
+    assert.equal(listed, publishedArticlePaths(site.lang).length);
+    if (listed > 0) assertArchiveFragments(html);
+    const prefix = site.lang === "fa" ? "پیوند به " : "post link to ";
+    for (const entry of archiveEntryDetails(html)) {
+      assert.equal(entry.label.startsWith(prefix), true, entry.label);
+      assert.equal(entry.label.endsWith(entry.title), true, entry.label);
+    }
+  }
+});
+
+test("reading time keeps its label and uses the language's digits", () => {
+  for (const site of SITES) {
+    const pattern = site.lang === "fa" ? /^[۰-۹]+ دقیقه$/ : /^\d+ min$/;
+    const articles = new Set(publishedArticlePaths(site.lang));
+    let seen = 0;
+    for (const entry of sitemapEntries(read(`public/${site.lang}/sitemap.xml`))) {
+      const pathname = new URL(entry.loc).pathname;
+      const labels = readingLabels(read(pageFile(site.lang, pathname)));
+      for (const label of labels) assert.match(label, pattern, entry.loc);
+      if (!articles.has(pathname)) continue;
+      assert.equal(labels.length, 1, entry.loc);
+      seen += 1;
+    }
+    assert.equal(seen, articles.size);
+  }
+});
+
+function publishedStylesheet(lang) {
+  const html = read(`public/${lang}/index.html`);
+  const href = html.match(/href="?(\/[^"\s>]+\.css)"?/)?.[1];
+  assert.ok(href, `${lang} home page is missing a stylesheet`);
+  return read(`public/${lang}${href}`);
+}
+
+test("breadcrumb separators follow the page direction", () => {
+  for (const site of SITES) {
+    const css = publishedStylesheet(site.lang);
+    assert.match(css, /html\[dir=rtl\]\s*\.breadcrumbs svg\{transform:scaleX\(-1\)\}/);
+    const sectionTitle = read(`public/${site.lang}/articles/index.html`).match(/<h1[^>]*>\s*([^<\n]+)/)?.[1]?.trim();
+    assert.ok(sectionTitle, `${site.lang} articles section is missing a title`);
+
+    let trail = null;
+    for (const entry of sitemapEntries(read(`public/${site.lang}/sitemap.xml`))) {
+      const html = read(pageFile(site.lang, new URL(entry.loc).pathname));
+      const nav = html.match(/<nav class="?breadcrumbs"?[^>]*>[\s\S]*?<\/nav>/)?.[0];
+      if (!nav) continue;
+      const labels = [...nav.matchAll(/<a\b[^>]*>([^<]*)<\/a>/g)].map((match) => match[1].trim());
+      if (labels.length < 2) continue;
+      trail = { nav, labels };
+      break;
+    }
+    assert.ok(trail, `${site.lang} has no multi-level breadcrumb`);
+    assert.equal(trail.labels[0], site.lang === "fa" ? "خانه" : "Home");
+    assert.equal(trail.labels[1], sectionTitle);
+    assert.match(trail.nav, /feather-chevron-right/);
+    assert.equal(trail.nav.includes("scaleX"), false);
+  }
+});
+
+test("navigation and footer stay in the page language", () => {
+  const persian = read("public/fa/index.html");
+  assert.match(persian, /<span>بایگانی<\/span>/);
+  assert.equal(persian.includes("آرشیو"), false);
+  const persianFooter = footerOf(persian);
+  assert.match(persianFooter, new RegExp(`&copy; ${jalaliYear()}`));
+  assert.match(persianFooter, /ساخته شده با/);
+  assert.match(persianFooter, /dir="?ltr"?[^>]*>Hugo</);
+  assert.match(persianFooter, /dir="?ltr"?[^>]*>PaperMod</);
+  assert.match(persianFooter, /https:\/\/gohugo\.io\/\?utm_source=abdolirad\.ir/);
+  assert.equal(persianFooter.includes("Powered by"), false);
+  assert.match(persian, /id="?top-link"?/);
+  assert.match(persian, /aria-label="برو به بالا"/);
+  assert.match(persian, /title="برو به بالا \(Alt \+ G\)"/);
+  assert.match(persian, /aria-label="تغییر پوسته"/);
+
+  const english = read("public/en/index.html");
+  assert.match(english, /<span>Archives<\/span>/);
+  assert.equal(english.includes("بایگانی"), false);
+  const englishFooter = footerOf(english);
+  assert.match(englishFooter, new RegExp(`&copy; ${new Date().getFullYear()}`));
+  assert.match(englishFooter, /Powered by/);
+  assert.match(englishFooter, /https:\/\/gohugo\.io\/\?utm_source=abdolirad\.me/);
+  assert.equal(englishFooter.includes("ساخته شده با"), false);
+  assert.match(english, /id="?top-link"?/);
+  assert.match(english, /aria-label="go to top"/);
+  assert.match(english, /title="Go to Top \(Alt \+ G\)"/);
+  assert.match(english, /aria-label="Toggle theme"/);
+
+  for (const site of SITES) {
+    const label = site.lang === "fa" ? "<span>ترجمه‌ها:</span>" : "<span>Translations:</span>";
+    for (const entry of sitemapEntries(read(`public/${site.lang}/sitemap.xml`))) {
+      const html = read(pageFile(site.lang, new URL(entry.loc).pathname));
+      if (!html.includes("i18n_list")) continue;
+      assert.equal(html.includes(label), true, entry.loc);
+    }
+  }
+});
+
+test("page metadata stays singular and language-specific", () => {
+  for (const site of SITES) {
+    for (const entry of sitemapEntries(read(`public/${site.lang}/sitemap.xml`))) {
+      const html = read(pageFile(site.lang, new URL(entry.loc).pathname));
+      const rootTag = html.match(/<html\b[^>]*>/i)?.[0] ?? "";
+      assert.equal(attributes(rootTag).lang, site.lang, entry.loc);
+      assert.match(html, /<title>[^<]+<\/title>/, entry.loc);
+      const tags = metaTags(html);
+      assert.equal(tags.filter((attrs) => attrs.name === "description").length, 1, entry.loc);
+      const keywords = tags.filter((attrs) => attrs.name === "keywords");
+      assert.ok(keywords.length <= 1, entry.loc);
+      assert.equal((keywords[0]?.content ?? "").includes("<"), false, entry.loc);
+      const canonicals = [...html.matchAll(/<link\b[^>]*>/gi)].filter((match) => attributes(match[0]).rel === "canonical");
+      assert.equal(canonicals.length, 1, entry.loc);
+      const ogUrl = metaContent(html, "og:url");
+      if (ogUrl) assert.equal(ogUrl, entry.loc, entry.loc);
+      const locale = metaContent(html, "og:locale");
+      if (locale) assert.equal(locale, site.lang === "fa" ? "fa_IR" : "en_US", entry.loc);
+    }
   }
 });

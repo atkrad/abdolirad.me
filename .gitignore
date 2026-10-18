@@ -1,5 +1,6 @@
 .idea
 public
+data/persianDates.json
 .hugo_build.lock
 node_modules/
 .wrangler/
