@@ -105,7 +105,8 @@ function langOfLocale(locale) {
 }
 
 function pageFile(lang, pathname) {
-  const relative = pathname === "/" ? "index.html" : `${pathname.slice(1)}index.html`;
+  const decoded = decodeURIComponent(pathname);
+  const relative = decoded === "/" ? "index.html" : `${decoded.slice(1)}index.html`;
   return path.join("public", lang, relative);
 }
 
@@ -224,7 +225,14 @@ test("pages publish the canonical url and hreflang links from the sitemap", () =
 
       for (const lang of SITES.map((item) => item.lang)) {
         const fromSitemap = entry.alternates.find((alternate) => langOfLocale(alternate.locale) === lang)?.href ?? null;
-        assert.equal(hreflang(html, lang), fromSitemap, `${entry.loc} ${lang}`);
+        const fromPage = hreflang(html, lang);
+        if (fromSitemap) {
+          assert.equal(fromPage, fromSitemap, `${entry.loc} ${lang}`);
+          continue;
+        }
+        // A term that exists in one language has no sitemap alternate. The page may still name itself.
+        if (lang === site.lang) assert.ok(fromPage === null || fromPage === entry.loc, `${entry.loc} ${lang}`);
+        else assert.equal(fromPage, null, `${entry.loc} ${lang}`);
       }
     }
   }
@@ -291,6 +299,14 @@ function metaTags(html) {
 function metaContent(html, key) {
   const found = metaTags(html).find((attrs) => attrs.property === key || attrs.name === key);
   return found ? decode(found.content ?? "") : null;
+}
+
+function postTags(html) {
+  const list = html.match(/<ul class="?post-tags"?[^>]*>[\s\S]*?<\/ul>/)?.[0] ?? "";
+  return [...list.matchAll(/<a\b[^>]*href=(?:"([^"]*)"|([^\s>]+))[^>]*>([^<]*)<\/a>/g)].map((match) => ({
+    href: match[1] ?? match[2],
+    text: match[3].trim(),
+  }));
 }
 
 function jsonField(html, name) {
@@ -482,7 +498,9 @@ test("breadcrumb separators follow the page direction", () => {
 
     let trail = null;
     for (const entry of sitemapEntries(read(`public/${site.lang}/sitemap.xml`))) {
-      const html = read(pageFile(site.lang, new URL(entry.loc).pathname));
+      const pathname = new URL(entry.loc).pathname;
+      if (!/^\/articles\/[^/]+\/$/.test(pathname)) continue;
+      const html = read(pageFile(site.lang, pathname));
       const nav = html.match(/<nav class="?breadcrumbs"?[^>]*>[\s\S]*?<\/nav>/)?.[0];
       if (!nav) continue;
       const labels = [...nav.matchAll(/<a\b[^>]*>([^<]*)<\/a>/g)].map((match) => match[1].trim());
@@ -556,5 +574,53 @@ test("page metadata stays singular and language-specific", () => {
       const locale = metaContent(html, "og:locale");
       if (locale) assert.equal(locale, site.lang === "fa" ? "fa_IR" : "en_US", entry.loc);
     }
+  }
+});
+
+test("the parking article publishes its summary and tags in each language", () => {
+  const articles = {
+    en: {
+      origin: "https://abdolirad.me",
+      other: "https://abdolirad.ir/articles/go-1-28-http2-parking-memory/",
+      description:
+        "I benchmarked Go 1.28 HTTP/2 parking with 5,000 idle connections. Across three runs, the same server binary used 85-93 MiB less RSS with parking enabled.",
+      keywords: "Go 1.28 HTTP/2 parking,Go,HTTP/2,Performance,Benchmarking,Goroutines",
+      tags: ["Go", "HTTP/2", "Performance", "Benchmarking"],
+    },
+    fa: {
+      origin: "https://abdolirad.ir",
+      other: "https://abdolirad.me/articles/go-1-28-http2-parking-memory/",
+      description:
+        "در بنچمارکی با نسخه‌ای ساخته‌شده از کد در حال توسعهٔ Go 1.28، فعال‌بودن Parking در HTTP/2 با ۵۰۰۰ اتصال باز بدون درخواست فعال، مصرف RSS سرور را در سه اجرا حدود ۸۵ تا ۹۳ MiB کاهش داد.",
+      keywords: "Go 1.28 HTTP/2 parking,Go,HTTP/2,کارایی,بنچمارک,Goroutine",
+      tags: ["Go", "HTTP/2", "کارایی", "بنچمارک"],
+    },
+  };
+  for (const [lang, spec] of Object.entries(articles)) {
+    const html = read(`public/${lang}/articles/go-1-28-http2-parking-memory/index.html`);
+    const page = `${spec.origin}/articles/go-1-28-http2-parking-memory/`;
+    assert.equal(canonical(html), page, lang);
+    assert.equal(hreflang(html, lang === "en" ? "fa" : "en"), spec.other, lang);
+    assert.equal(attributes(html.match(/<html\b[^>]*>/i)[0]).lang, lang);
+    assert.equal(metaContent(html, "description").replace(/\s+/g, " ").trim(), spec.description, lang);
+    assert.equal(metaContent(html, "og:description").replace(/\s+/g, " ").trim(), spec.description, lang);
+    assert.equal(metaContent(html, "keywords"), spec.keywords, lang);
+    const articleTags = metaTags(html)
+      .filter((attrs) => attrs.property === "article:tag")
+      .map((attrs) => attrs.content);
+    assert.deepEqual(articleTags, spec.tags, lang);
+    const links = postTags(html);
+    assert.deepEqual(links.map((link) => link.text), spec.tags, lang);
+    for (const link of links) {
+      assert.equal(link.href.startsWith(`${spec.origin}/`), true, link.href);
+      const tagPage = read(pageFile(lang, new URL(link.href).pathname));
+      assert.equal(canonical(tagPage), link.href.endsWith("/") ? link.href : `${link.href}/`, link.href);
+      assert.match(tagPage, /go-1-28-http2-parking-memory/, link.href);
+      assert.equal(attributes(tagPage.match(/<html\b[^>]*>/i)[0]).lang, lang, link.href);
+      const crumb = tagPage.match(/<nav class="?breadcrumbs"?[^>]*>[\s\S]*?<\/nav>/)?.[0] ?? "";
+      assert.match(crumb, lang === "fa" ? /برچسب‌ها/ : />Tags</, link.href);
+    }
+    assert.match(html, /src=(?:"\/js\/chart-zoom\.js"|\/js\/chart-zoom\.js)(?:[\s>]|$)/);
+    assert.equal(html.includes("chart-viewer"), false);
   }
 });

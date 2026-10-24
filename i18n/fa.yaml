@@ -30,15 +30,3 @@
 
 - id: rss_title_in
   translation: "{{ .Section }} در {{ .Site }}"
-
-- id: chart_view_larger
-  translation: "نمایش بزرگ‌تر"
-
-- id: chart_close
-  translation: "بستن"
-
-- id: chart_zoom_in
-  translation: "بزرگ‌نمایی"
-
-- id: chart_zoom_out
-  translation: "کوچک‌نمایی"

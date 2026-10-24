@@ -24,13 +24,6 @@
         {{- printf " %s=\"%s\"" $k ($v | htmlEscape) | safeHTMLAttr -}}
       {{- end -}}
     {{- end -}}>
-  <a class="chart-figure__open" href="{{ $src }}"
-    data-close="{{ i18n "chart_close" | default "Close" }}"
-    data-zoom-in="{{ i18n "chart_zoom_in" | default "Zoom in" }}"
-    data-zoom-out="{{ i18n "chart_zoom_out" | default "Zoom out" }}">
-    {{- i18n "chart_view_larger" | default "View larger" -}}
-    <span class="chart-figure__for">{{ .Text }}</span>
-  </a>
 </figure>
 {{- else }}
 <img

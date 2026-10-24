@@ -11,6 +11,11 @@ keywords:
   - Performance
   - Benchmarking
   - Goroutines
+tags:
+  - Go
+  - HTTP/2
+  - Performance
+  - Benchmarking
 ---
 While reading the draft Go 1.28 release notes, I noticed a change in the HTTP/2 server. With this change, the goroutine responsible for serving a connection can exit when there is no work to do, instead of waiting. A new goroutine takes over when needed. At first, it seemed like a small change, but I wondered how much memory it could save on a server with thousands of open connections.
 

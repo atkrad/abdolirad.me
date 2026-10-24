@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -91,27 +91,46 @@ test("a spec value overrides the shared theme", () => {
   assert.deepEqual(themed.config.range.category, Object.values(theme.palettes.series));
 });
 
-test("locale pairs compare after localized copy is removed", () => {
-  const shared = {
-    data: { values: [{ name: "left", amount: 4 }] },
-    mark: "bar",
-    encoding: {
-      x: { field: "name", type: "nominal" },
-      y: { field: "amount", type: "quantitative" },
-      color: { field: "name", scale: { palette: "series", domain: ["left"] } },
-    },
+function walkSpecs(dir, found = []) {
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) walkSpecs(full, found);
+    else if (entry.name.endsWith(".en.vl.json")) found.push(full);
+  }
+  return found;
+}
+
+function chartShape(spec) {
+  const copy = structuredClone(spec);
+  const visit = (value) => {
+    if (Array.isArray(value)) return value.map(visit);
+    if (!value || typeof value !== "object") return value;
+    const next = {};
+    for (const [key, item] of Object.entries(value)) {
+      if (key === "description" || key === "labelExpr" || key === "title") continue;
+      next[key] = visit(item);
+    }
+    return next;
   };
-  const english = { ...structuredClone(shared), title: { text: "North wing", anchor: "start" }, description: "North wing" };
-  const persian = { ...structuredClone(shared), title: { text: "بال شمالی", anchor: "end" }, description: "بال شمالی" };
-  const strip = (spec) => {
-    const copy = structuredClone(spec);
-    delete copy.title;
-    delete copy.description;
-    return copy;
-  };
-  assert.deepEqual(strip(english), strip(persian));
-  assert.equal(localeOf("notes/wing.en.vl.json"), "en");
-  assert.equal(localeOf("notes/wing.fa.vl.json"), "fa");
+  return visit(copy);
+}
+
+test("published locale pairs keep the same chart encoding", () => {
+  const specs = walkSpecs(path.join(repoRoot, "content"));
+  assert.ok(specs.length > 0);
+  for (const englishPath of specs) {
+    const persianPath = englishPath
+      .replace(`${path.sep}content${path.sep}en${path.sep}`, `${path.sep}content${path.sep}fa${path.sep}`)
+      .replace(/\.en\.vl\.json$/, ".fa.vl.json");
+    assert.equal(existsSync(persianPath), true, persianPath);
+    const english = JSON.parse(readFileSync(englishPath, "utf8"));
+    const persian = JSON.parse(readFileSync(persianPath, "utf8"));
+    assert.deepEqual(chartShape(english), chartShape(persian), englishPath);
+    assert.equal(english.title.anchor, "start", englishPath);
+    assert.equal(persian.title.anchor, "end", persianPath);
+    assert.equal(localeOf(englishPath), "en");
+    assert.equal(localeOf(persianPath), "fa");
+  }
   assert.equal(localeOf("notes/wing.vl.json"), "en");
 });
 
@@ -208,8 +227,10 @@ function toolsReady() {
 }
 
 const canRender = toolsReady();
+const renderRequirement = "vl-convert, pyftsubset, hb-shape, and CHARTS_FONT_DIR are required; run npm test inside nix develop";
 
-test("rendered fixtures embed the font, localize numbers, and stay deterministic", { skip: canRender ? false : "chart fonts or vl-convert are not on PATH" }, () => {
+test("rendered fixtures embed the font, localize numbers, and stay deterministic", () => {
+  assert.ok(canRender, renderRequirement);
   const dir = mkdtempSync(path.join(repoRoot, ".chart-fixture-"));
   try {
     const specPath = path.join(dir, "widget.fa.vl.json");
@@ -296,7 +317,8 @@ test("a prepared spec inlines local csv and rejects a bad file", () => {
   }
 });
 
-test("check mode reports committed svgs that do not match a fresh render", { skip: canRender ? false : "chart fonts or vl-convert are not on PATH" }, () => {
+test("check mode reports committed svgs that do not match a fresh render", () => {
+  assert.ok(canRender, renderRequirement);
   const result = spawnSync(process.execPath, [path.join(repoRoot, "charts", "render.mjs"), "--check"], {
     cwd: repoRoot,
     encoding: "utf8",
