@@ -1,0 +1,13 @@
+img.chart-figure {
+    max-width: 100%;
+    margin: 1rem 0 1.4rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .medium-zoom-overlay,
+    .medium-zoom-image,
+    .medium-zoom-image--opened {
+        transition: none !important;
+        animation: none !important;
+    }
+}

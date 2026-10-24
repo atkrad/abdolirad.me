@@ -1,0 +1,24 @@
+name: charts
+
+on:
+  pull_request:
+    paths:
+      - "charts/**"
+      - "content/**/*.vl.json"
+      - "content/**/*.csv"
+      - "content/**/*.svg"
+      - "flake.nix"
+      - "flake.lock"
+      - "package.json"
+      - ".github/workflows/charts.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  charts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: cachix/install-nix-action@v31
+      - run: nix develop -c npm run test:charts
