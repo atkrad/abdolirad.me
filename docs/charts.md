@@ -6,7 +6,7 @@
 
 Shared size, color, and font defaults live in `charts/theme.json`. A value in the spec wins over the theme. Keep `data.url` as a path relative to the spec, such as `data/chart-data.csv`. The renderer reads that file itself and rejects `..`, absolute paths, and remote URLs. A bad spec or a missing data file stops the command before it replaces any SVG.
 
-`--check` renders into a temporary directory and compares the bytes with the committed SVGs. `npm run test:charts`, inside `nix develop`, runs the same check and the font and numeral checks. `npm test` does not.
+`--check` renders into a temporary directory and compares the bytes with the committed SVGs. `npm run test:charts`, inside `nix develop`, runs the same check and the font and numeral checks. `npm test` does not. Pull requests that change those inputs run `nix develop -c npm run test:charts` in GitHub Actions. The Cloudflare build does not.
 
 The renderer is the `vl-convert` 1.9.0 CLI, pinned in `charts/nix/vl-convert.nix`. Nixpkgs has the Python binding and not this command, so the flake builds the CLI and pins the same source and v8 library as that Python package. Text is measured with Vazirmatn from Nixpkgs. Each SVG then embeds a subset of those files under the family name `Vazirmatn Embedded`, so the chart still uses Vazirmatn when it is shown as an image. Vazirmatn is SIL Open Font License 1.1. The copyright notice is in the SVG, and `charts/FONT-LICENSE.txt` records the same notice.
 

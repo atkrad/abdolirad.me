@@ -16,7 +16,7 @@ npm run dev
 
 `npm test` reads `public/`, so build first. Cloudflare runs this command. It does not render charts. `npm run dev` serves the build.
 
-`npm run test:charts` checks rendered SVG output. It needs `vl-convert`, `pyftsubset`, `hb-shape`, and `CHARTS_FONT_DIR`, which the Nix shell provides. Run it with `nix develop -c npm run test:charts`.
+`npm run test:charts` checks rendered SVG output. It needs `vl-convert`, `pyftsubset`, `hb-shape`, and `CHARTS_FONT_DIR`, which the Nix shell provides. Run it with `nix develop -c npm run test:charts`. GitHub Actions runs that command on pull requests that change the chart renderer, theme, specs, data, Nix files, or those tests.
 
 ## Charts
 

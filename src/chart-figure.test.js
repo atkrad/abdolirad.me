@@ -85,7 +85,8 @@ test("chart images use medium-zoom and ordinary images stay plain", () => {
     const persian = readFileSync(path.join(built.publicDir, "fa/articles/notes/index.html"), "utf8");
     for (const html of [english, persian]) {
       assert.match(html, /<img[^>]*alt="(?:Plain diagram|نمودار ساده)"[^>]*>/);
-      assert.match(html, /class="chart-figure"/);
+      assert.equal(/<figure\b/.test(html), false);
+      assert.match(html, /<p>\s*<img\b[^>]*class="chart-figure"[^>]*>\s*<\/p>/);
       assert.match(html, /<img[^>]*alt="(?:Widget counts for the north wing|شمارش ویجت برای بال شمالی)"[^>]*>/);
       assert.match(html, /src="[^"]*widget\.(?:en|fa)\.svg"/);
       assert.match(html, /src=(?:"\/js\/chart-zoom\.js"|\/js\/chart-zoom\.js)(?:[\s>]|$)/);

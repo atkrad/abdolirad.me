@@ -16,20 +16,12 @@
 {{- $chartResource := or (.PageInner.Resources.Get $specName) (.Page.Resources.Get $specName) -}}
 {{- $isChart := and (strings.HasSuffix $path ".svg") (not $u.IsAbs) $chartResource -}}
 {{- $attributes := merge .Attributes (dict "alt" .Text "src" $src "title" (.Title | transform.HTMLEscape) "loading" "lazy") -}}
-{{- if $isChart }}
-<figure class="chart-figure">
-  <img
-    {{- range $k, $v := $attributes -}}
-      {{- if $v -}}
-        {{- printf " %s=\"%s\"" $k ($v | htmlEscape) | safeHTMLAttr -}}
-      {{- end -}}
-    {{- end -}}>
-</figure>
-{{- else }}
+{{- if $isChart -}}
+  {{- $attributes = merge $attributes (dict "class" "chart-figure") -}}
+{{- end }}
 <img
   {{- range $k, $v := $attributes -}}
     {{- if $v -}}
       {{- printf " %s=\"%s\"" $k ($v | htmlEscape) | safeHTMLAttr -}}
     {{- end -}}
   {{- end -}}>
-{{- end -}}
