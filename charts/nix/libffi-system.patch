@@ -1,0 +1,14 @@
+diff --git a/vl-convert-rs/Cargo.toml b/vl-convert-rs/Cargo.toml
+--- a/vl-convert-rs/Cargo.toml
++++ b/vl-convert-rs/Cargo.toml
+@@ -34,6 +34,10 @@ tokio = { workspace = true }
+ serde_json = { workspace = true }
+ tempfile = { workspace = true }
+ lazy_static = { workspace = true }
++# Upstream enables this only on macOS. Linux builds of the bundled libffi fail
++# in the same way Nixpkgs already works around for vl-convert-python, so link
++# the system libffi on every platform.
++libffi = { version = "^3.2.0", features = ["system"] }
+ 
+ [dev-dependencies]
+ rstest = { workspace = true }

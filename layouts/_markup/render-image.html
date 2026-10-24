@@ -1,0 +1,42 @@
+{{- $u := urls.Parse .Destination -}}
+{{- $src := $u.String -}}
+{{- $path := strings.TrimPrefix "./" $u.Path -}}
+{{- if not $u.IsAbs -}}
+  {{- with or (.PageInner.Resources.Get $path) (.Page.Resources.Get $path) (resources.Get $path) -}}
+    {{- $src = .RelPermalink -}}
+    {{- with $u.RawQuery -}}
+      {{- $src = printf "%s?%s" $src . -}}
+    {{- end -}}
+    {{- with $u.Fragment -}}
+      {{- $src = printf "%s#%s" $src . -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
+{{- $specName := printf "%s.vl.json" (strings.TrimSuffix ".svg" $path) -}}
+{{- $chartResource := or (.PageInner.Resources.Get $specName) (.Page.Resources.Get $specName) -}}
+{{- $isChart := and (strings.HasSuffix $path ".svg") (not $u.IsAbs) $chartResource -}}
+{{- $attributes := merge .Attributes (dict "alt" .Text "src" $src "title" (.Title | transform.HTMLEscape) "loading" "lazy") -}}
+{{- if $isChart }}
+<figure class="chart-figure">
+  <img
+    {{- range $k, $v := $attributes -}}
+      {{- if $v -}}
+        {{- printf " %s=\"%s\"" $k ($v | htmlEscape) | safeHTMLAttr -}}
+      {{- end -}}
+    {{- end -}}>
+  <a class="chart-figure__open" href="{{ $src }}"
+    data-close="{{ i18n "chart_close" | default "Close" }}"
+    data-zoom-in="{{ i18n "chart_zoom_in" | default "Zoom in" }}"
+    data-zoom-out="{{ i18n "chart_zoom_out" | default "Zoom out" }}">
+    {{- i18n "chart_view_larger" | default "View larger" -}}
+    <span class="chart-figure__for">{{ .Text }}</span>
+  </a>
+</figure>
+{{- else }}
+<img
+  {{- range $k, $v := $attributes -}}
+    {{- if $v -}}
+      {{- printf " %s=\"%s\"" $k ($v | htmlEscape) | safeHTMLAttr -}}
+    {{- end -}}
+  {{- end -}}>
+{{- end -}}

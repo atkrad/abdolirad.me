@@ -1,0 +1,128 @@
+{{- /* The footer partial is cached across pages, so this cannot depend on one page's resources. It binds only .chart-figure__open and returns immediately when a page has no chart. */ -}}
+<script>
+    (function () {
+        const links = [...document.querySelectorAll(".chart-figure__open")];
+        if (!links.length || typeof HTMLDialogElement === "undefined") return;
+
+        const sample = links[0];
+        const dialog = document.createElement("dialog");
+        dialog.className = "chart-viewer";
+        dialog.innerHTML = [
+            '<div class="chart-viewer__bar">',
+            '<h2 class="chart-viewer__title" id="chart-viewer-title"></h2>',
+            '<button type="button" data-action="out"></button>',
+            '<button type="button" data-action="in"></button>',
+            '<button type="button" data-action="close"></button>',
+            "</div>",
+            '<div class="chart-viewer__stage" tabindex="0">',
+            '<img alt="">',
+            "</div>",
+        ].join("");
+        dialog.setAttribute("aria-labelledby", "chart-viewer-title");
+        document.body.appendChild(dialog);
+
+        const title = dialog.querySelector(".chart-viewer__title");
+        const stage = dialog.querySelector(".chart-viewer__stage");
+        const image = dialog.querySelector("img");
+        const closeButton = dialog.querySelector('[data-action="close"]');
+        const zoomIn = dialog.querySelector('[data-action="in"]');
+        const zoomOut = dialog.querySelector('[data-action="out"]');
+        closeButton.textContent = sample.dataset.close || "Close";
+        zoomIn.textContent = sample.dataset.zoomIn || "Zoom in";
+        zoomOut.textContent = sample.dataset.zoomOut || "Zoom out";
+        zoomIn.setAttribute("aria-label", zoomIn.textContent);
+        zoomOut.setAttribute("aria-label", zoomOut.textContent);
+
+        let pushed = false;
+        let previous = null;
+        let scale = 1;
+        let baseWidth = 720;
+
+        function fitScale() {
+            if (!baseWidth) return 1;
+            return Math.min(1, (stage.clientWidth - 8) / baseWidth);
+        }
+
+        function applyWidth() {
+            image.style.width = `${Math.round(baseWidth * scale)}px`;
+        }
+
+        function open(link) {
+            const source = link.closest(".chart-figure").querySelector("img");
+            previous = document.activeElement;
+            title.textContent = source.getAttribute("alt") || "";
+            image.alt = "";
+            scale = 1;
+            image.src = link.href;
+            dialog.showModal();
+            document.documentElement.classList.add("chart-viewer-open");
+            closeButton.focus();
+            history.pushState({ chartViewer: true }, "");
+            pushed = true;
+        }
+
+        image.addEventListener("load", () => {
+            baseWidth = image.naturalWidth || 720;
+            scale = 1;
+            applyWidth();
+        });
+
+        function requestClose() {
+            if (!dialog.open) return;
+            if (pushed) {
+                pushed = false;
+                history.back();
+                return;
+            }
+            dialog.close();
+        }
+
+        dialog.addEventListener("close", () => {
+            document.documentElement.classList.remove("chart-viewer-open");
+            image.removeAttribute("src");
+            if (previous && typeof previous.focus === "function") previous.focus();
+        });
+
+        dialog.addEventListener("cancel", (event) => {
+            event.preventDefault();
+            requestClose();
+        });
+
+        window.addEventListener("popstate", () => {
+            pushed = false;
+            if (dialog.open) dialog.close();
+        });
+
+        closeButton.addEventListener("click", requestClose);
+        zoomIn.addEventListener("click", () => {
+            scale = Math.min(scale * 1.25, 3);
+            applyWidth();
+        });
+        zoomOut.addEventListener("click", () => {
+            scale = Math.max(scale / 1.25, fitScale());
+            applyWidth();
+        });
+
+        dialog.addEventListener("keydown", (event) => {
+            if (event.key !== "Tab") return;
+            const items = [...dialog.querySelectorAll("button, [tabindex]:not([tabindex='-1'])")];
+            if (!items.length) return;
+            const first = items[0];
+            const last = items[items.length - 1];
+            if (event.shiftKey && document.activeElement === first) {
+                event.preventDefault();
+                last.focus();
+            } else if (!event.shiftKey && document.activeElement === last) {
+                event.preventDefault();
+                first.focus();
+            }
+        });
+
+        for (const link of links) {
+            link.addEventListener("click", (event) => {
+                event.preventDefault();
+                open(link);
+            });
+        }
+    })();
+</script>
