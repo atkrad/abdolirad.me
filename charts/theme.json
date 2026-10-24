@@ -1,0 +1,88 @@
+{
+  "width": 600,
+  "height": 320,
+  "padding": { "left": 12, "right": 20, "top": 8, "bottom": 4 },
+  "autosize": { "type": "pad", "contains": "padding" },
+  "palettes": {
+    "series": {
+      "go127": "#2F5F9A",
+      "go128off": "#A55A36",
+      "go128": "#08685A"
+    },
+    "run": {
+      "1": "#C9C3BA",
+      "2": "#8C857C",
+      "3": "#534E48"
+    }
+  },
+  "config": {
+    "background": "#FAF9F6",
+    "font": "Vazirmatn",
+    "view": { "stroke": "transparent" },
+    "axis": {
+      "grid": false,
+      "domain": false,
+      "ticks": false,
+      "labelColor": "#5B6574",
+      "titleColor": "#252B38",
+      "labelFont": "Vazirmatn",
+      "titleFont": "Vazirmatn",
+      "labelFontSize": 14,
+      "titleFontSize": 14,
+      "titleFontWeight": 500,
+      "labelPadding": 8,
+      "titlePadding": 16,
+      "labelLimit": 0,
+      "labelAngle": 0,
+      "labelOverlap": false
+    },
+    "axisY": {
+      "grid": true,
+      "gridColor": "#E5E1DB",
+      "gridOpacity": 1,
+      "tickCount": 4
+    },
+    "legend": {
+      "labelColor": "#252B38",
+      "titleColor": "#252B38",
+      "labelFont": "Vazirmatn",
+      "titleFont": "Vazirmatn",
+      "labelFontSize": 14,
+      "titleFontSize": 14,
+      "titleFontWeight": 500,
+      "symbolSize": 140,
+      "orient": "bottom",
+      "direction": "horizontal",
+      "labelLimit": 0,
+      "padding": 16,
+      "columnPadding": 16,
+      "rowPadding": 6,
+      "labelOffset": 6
+    },
+    "title": {
+      "color": "#252B38",
+      "font": "Vazirmatn",
+      "fontSize": 18,
+      "fontWeight": 600,
+      "anchor": "start",
+      "offset": 14,
+      "limit": 0
+    },
+    "header": {
+      "labelColor": "#252B38",
+      "labelFont": "Vazirmatn",
+      "labelFontSize": 15,
+      "labelFontWeight": 600,
+      "labelPadding": 8
+    },
+    "text": {
+      "color": "#252B38",
+      "font": "Vazirmatn",
+      "fontSize": 13,
+      "fontWeight": 500
+    },
+    "line": { "strokeWidth": 2.25 },
+    "point": { "filled": true, "size": 90 },
+    "bar": { "binSpacing": 1 }
+  }
+}

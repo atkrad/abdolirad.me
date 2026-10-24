@@ -1,0 +1,71 @@
+{
+  "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+  "description": "StackInuse vs HeapAlloc at 5,000 connections",
+  "title": { "text": "StackInuse vs HeapAlloc at 5,000 connections", "anchor": "start" },
+  "data": { "url": "data/chart-data.csv" },
+  "transform": [
+    {
+      "filter": "datum.connections == 5000 && (datum.case == 'go128' || datum.case == 'go128off')"
+    },
+    {
+      "fold": ["stack_inuse_mib", "heap_alloc_mib"],
+      "as": ["metric", "mib"]
+    }
+  ],
+  "facet": {
+    "field": "metric",
+    "type": "nominal",
+    "title": null,
+    "columns": 2,
+    "spacing": 32,
+    "sort": ["stack_inuse_mib", "heap_alloc_mib"],
+    "header": {
+      "title": null,
+      "labelExpr": "datum.value == 'stack_inuse_mib' ? 'StackInuse' : 'HeapAlloc'"
+    }
+  },
+  "spec": {
+    "width": 250,
+    "height": 260,
+    "encoding": {
+      "x": {
+        "field": "run",
+        "type": "ordinal",
+        "title": "Run",
+        "sort": "ascending",
+        "axis": { "labelAngle": 0, "grid": false }
+      },
+      "xOffset": { "field": "case", "type": "nominal", "sort": ["go128off", "go128"] },
+      "y": {
+        "field": "mib",
+        "type": "quantitative",
+        "title": "Memory (MiB)",
+        "scale": { "domain": [0, 120], "nice": false, "zero": true }
+      },
+      "color": {
+        "field": "case",
+        "type": "nominal",
+        "title": null,
+        "sort": ["go128off", "go128"],
+        "scale": {
+          "domain": ["go128off", "go128"],
+          "palette": "series"
+        },
+        "legend": {
+          "labelExpr": "datum.value == 'go128off' ? 'Go 1.28, Parking off' : 'Go 1.28, Parking on'"
+        }
+      }
+    },
+    "layer": [
+      { "mark": { "type": "bar" } },
+      {
+        "mark": { "type": "text", "dy": -10 },
+        "encoding": {
+          "text": { "field": "mib", "format": ".1f" },
+          "color": { "value": "#252B38" }
+        }
+      }
+    ]
+  },
+  "resolve": { "scale": { "y": "shared" } }
+}

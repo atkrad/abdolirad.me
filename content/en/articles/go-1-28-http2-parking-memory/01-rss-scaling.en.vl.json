@@ -1,0 +1,49 @@
+{
+  "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+  "description": "RSS memory usage as HTTP/2 connections increase",
+  "title": { "text": "RSS memory usage as HTTP/2 connections increase", "anchor": "start" },
+  "data": { "url": "data/chart-data.csv" },
+  "transform": [
+    {
+      "aggregate": [{ "op": "median", "field": "rss_mib", "as": "rss_mib" }],
+      "groupby": ["case", "connections"]
+    }
+  ],
+  "encoding": {
+    "x": {
+      "field": "connections",
+      "type": "quantitative",
+      "title": "HTTP/2 connections",
+      "scale": { "domain": [0, 5000], "nice": false, "zero": true },
+      "axis": {
+        "values": [0, 1000, 5000],
+        "labelExpr": "datum.value >= 1000 ? format(datum.value, ',') : datum.value",
+        "labelAngle": 0,
+        "grid": false
+      }
+    },
+    "y": {
+      "field": "rss_mib",
+      "type": "quantitative",
+      "title": "RSS (MiB)",
+      "scale": { "zero": true }
+    },
+    "color": {
+      "field": "case",
+      "type": "nominal",
+      "title": null,
+      "sort": ["go127", "go128off", "go128"],
+      "scale": {
+        "domain": ["go127", "go128off", "go128"],
+        "palette": "series"
+      },
+      "legend": {
+        "labelExpr": "datum.value == 'go127' ? 'Go 1.27.2' : datum.value == 'go128off' ? 'Go 1.28, Parking off' : 'Go 1.28, Parking on'"
+      }
+    }
+  },
+  "layer": [
+    { "mark": { "type": "line" } },
+    { "mark": { "type": "point" } }
+  ]
+}

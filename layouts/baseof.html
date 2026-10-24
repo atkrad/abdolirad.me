@@ -27,6 +27,14 @@
         {{- block "main" . }}{{ end }}
     </main>
     {{ partialCached "footer.html" . .Lang .Layout .Kind (.Param "hideFooter") (.Param "ShowCodeCopyButtons") -}}
+    {{- $hasChart := false -}}
+    {{- range .Resources -}}
+        {{- if strings.HasSuffix .Name ".vl.json" }}{{ $hasChart = true }}{{ end -}}
+    {{- end -}}
+    {{- if $hasChart -}}
+        {{- $zoom := resources.Get "js/chart-zoom.js" | js.Build (dict "minify" hugo.IsProduction "targetPath" "js/chart-zoom.js") -}}
+        <script src="{{ $zoom.RelPermalink }}" defer></script>
+    {{- end -}}
 </body>
 
 </html>

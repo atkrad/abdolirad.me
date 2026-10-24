@@ -1,0 +1,53 @@
+{
+  "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+  "description": "کاهش مصرف RSS با فعال‌کردن Parking",
+  "title": { "text": "کاهش مصرف RSS با فعال‌کردن Parking", "anchor": "end" },
+  "data": { "url": "data/chart-data.csv" },
+  "transform": [
+    {
+      "filter": "(datum.case == 'go128' || datum.case == 'go128off') && (datum.connections == 1000 || datum.connections == 5000)"
+    },
+    {
+      "pivot": "case",
+      "value": "rss_mib",
+      "groupby": ["run", "connections"]
+    },
+    { "calculate": "datum.go128off - datum.go128", "as": "rss_saved_mib" }
+  ],
+  "encoding": {
+    "x": {
+      "field": "connections",
+      "type": "ordinal",
+      "title": "اتصال‌های HTTP/2",
+      "sort": "ascending",
+      "axis": { "labelExpr": "format(datum.value, ',')", "labelAngle": 0, "grid": false }
+    },
+    "xOffset": { "field": "run", "type": "ordinal", "sort": "ascending" },
+    "y": {
+      "field": "rss_saved_mib",
+      "type": "quantitative",
+      "title": "کاهش RSS (MiB)",
+      "scale": { "domain": [0, 120], "nice": false, "zero": true }
+    },
+    "color": {
+      "field": "run",
+      "type": "nominal",
+      "title": "اجرا",
+      "sort": "ascending",
+      "scale": { "domain": [1, 2, 3], "palette": "run" },
+      "legend": {
+        "labelExpr": "datum.value == 1 ? 'اجرای ۱' : datum.value == 2 ? 'اجرای ۲' : 'اجرای ۳'"
+      }
+    }
+  },
+  "layer": [
+    { "mark": { "type": "bar" } },
+    {
+      "mark": { "type": "text", "dy": -10 },
+      "encoding": {
+        "text": { "field": "rss_saved_mib", "format": ".1f" },
+        "color": { "value": "#252B38" }
+      }
+    }
+  ]
+}

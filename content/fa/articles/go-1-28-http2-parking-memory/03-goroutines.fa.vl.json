@@ -1,0 +1,50 @@
+{
+  "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+  "description": "تعداد Goroutineها با افزایش اتصال‌ها",
+  "title": { "text": "تعداد Goroutineها با افزایش اتصال‌ها", "anchor": "end" },
+  "data": { "url": "data/chart-data.csv" },
+  "transform": [
+    { "filter": "datum.case == 'go128' || datum.case == 'go128off'" },
+    {
+      "aggregate": [{ "op": "median", "field": "goroutines", "as": "goroutines" }],
+      "groupby": ["case", "connections"]
+    }
+  ],
+  "encoding": {
+    "x": {
+      "field": "connections",
+      "type": "quantitative",
+      "title": "اتصال‌های HTTP/2",
+      "scale": { "domain": [0, 5000], "nice": false, "zero": true },
+      "axis": {
+        "values": [0, 1000, 5000],
+        "labelExpr": "datum.value >= 1000 ? format(datum.value, ',') : datum.value",
+        "labelAngle": 0,
+        "grid": false
+      }
+    },
+    "y": {
+      "field": "goroutines",
+      "type": "quantitative",
+      "title": "تعداد Goroutine",
+      "scale": { "zero": true }
+    },
+    "color": {
+      "field": "case",
+      "type": "nominal",
+      "title": null,
+      "sort": ["go128off", "go128"],
+      "scale": {
+        "domain": ["go128off", "go128"],
+        "palette": "series"
+      },
+      "legend": {
+        "labelExpr": "datum.value == 'go128off' ? 'Go 1.28، Parking غیرفعال' : 'Go 1.28، Parking فعال'"
+      }
+    }
+  },
+  "layer": [
+    { "mark": { "type": "line" } },
+    { "mark": { "type": "point" } }
+  ]
+}

@@ -14,7 +14,25 @@ npm test
 npm run dev
 ```
 
-`npm test` reads `public/`, so build first. `npm run dev` serves that build.
+`npm test` reads `public/`, so build first. Cloudflare runs this command. It does not render charts. `npm run dev` serves the build.
+
+`npm run test:charts` checks rendered SVG output. It needs `vl-convert`, `pyftsubset`, `hb-shape`, and `CHARTS_FONT_DIR`, which the Nix shell provides. Run it with `nix develop -c npm run test:charts`.
+
+## Charts
+
+A chart is a Vega-Lite file named `*.vl.json` in the article bundle, next to its CSV. From the repository root:
+
+```sh
+nix run .#charts
+nix run .#charts -- --check
+nix develop -c npm run test:charts
+```
+
+`01-rss-scaling.en.vl.json` becomes `01-rss-scaling.en.svg` in the same directory. Commit the spec, the CSV, and the SVG. `npm run build` does not render charts. `--check` compares a fresh render with the committed SVG and does not write it.
+
+A `*.fa.vl.json` spec prints Persian digits on labels that are only numbers. Other specs keep ASCII digits. `docs/charts.md` covers fonts, RTL text, and how a spec is found.
+
+On the site, an SVG with a matching `.vl.json` can be enlarged with [medium-zoom](https://github.com/francoischalifour/medium-zoom). Other images are left alone.
 
 ## Deployment
 
