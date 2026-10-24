@@ -230,7 +230,7 @@ test("writes a deterministic data file", () => {
 test("jalaali-js stays out of the Worker", () => {
   const pkg = JSON.parse(readFileSync(path.join(root, "package.json"), "utf8"));
   assert.equal(typeof pkg.devDependencies["jalaali-js"], "string");
-  assert.deepEqual(pkg.dependencies, { "medium-zoom": "^1.1.0" });
+  assert.equal(pkg.dependencies?.["jalaali-js"], undefined);
   for (const file of ["src/index.js", "src/routing.js", "src/hosts.js", "src/preview-links.js"]) {
     const source = readFileSync(path.join(root, file), "utf8");
     assert.equal(source.includes("jalaali"), false, file);

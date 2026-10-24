@@ -11,6 +11,7 @@
     "deploy": "wrangler deploy",
     "dev": "wrangler dev -c wrangler.dev.toml",
     "test": "node --test src/index.test.js src/preview-links.test.js src/output.test.js src/config.test.js src/persian-dates.test.js src/persian-dates-html.test.js src/chart-figure.test.js charts/charts.test.js charts/article-data.test.js",
+    "test:charts": "node --test charts/charts.integration.test.js",
     "check": "wrangler deploy --dry-run"
   },
   "devDependencies": {

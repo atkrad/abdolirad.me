@@ -577,50 +577,128 @@ test("page metadata stays singular and language-specific", () => {
   }
 });
 
-test("the parking article publishes its summary and tags in each language", () => {
-  const articles = {
-    en: {
-      origin: "https://abdolirad.me",
-      other: "https://abdolirad.ir/articles/go-1-28-http2-parking-memory/",
-      description:
-        "I benchmarked Go 1.28 HTTP/2 parking with 5,000 idle connections. Across three runs, the same server binary used 85-93 MiB less RSS with parking enabled.",
-      keywords: "Go 1.28 HTTP/2 parking,Go,HTTP/2,Performance,Benchmarking,Goroutines",
-      tags: ["Go", "HTTP/2", "Performance", "Benchmarking"],
-    },
-    fa: {
-      origin: "https://abdolirad.ir",
-      other: "https://abdolirad.me/articles/go-1-28-http2-parking-memory/",
-      description:
-        "در بنچمارکی با نسخه‌ای ساخته‌شده از کد در حال توسعهٔ Go 1.28، فعال‌بودن Parking در HTTP/2 با ۵۰۰۰ اتصال باز بدون درخواست فعال، مصرف RSS سرور را در سه اجرا حدود ۸۵ تا ۹۳ MiB کاهش داد.",
-      keywords: "Go 1.28 HTTP/2 parking,Go,HTTP/2,کارایی,بنچمارک,Goroutine",
-      tags: ["Go", "HTTP/2", "کارایی", "بنچمارک"],
-    },
-  };
-  for (const [lang, spec] of Object.entries(articles)) {
-    const html = read(`public/${lang}/articles/go-1-28-http2-parking-memory/index.html`);
-    const page = `${spec.origin}/articles/go-1-28-http2-parking-memory/`;
-    assert.equal(canonical(html), page, lang);
-    assert.equal(hreflang(html, lang === "en" ? "fa" : "en"), spec.other, lang);
-    assert.equal(attributes(html.match(/<html\b[^>]*>/i)[0]).lang, lang);
-    assert.equal(metaContent(html, "description").replace(/\s+/g, " ").trim(), spec.description, lang);
-    assert.equal(metaContent(html, "og:description").replace(/\s+/g, " ").trim(), spec.description, lang);
-    assert.equal(metaContent(html, "keywords"), spec.keywords, lang);
-    const articleTags = metaTags(html)
-      .filter((attrs) => attrs.property === "article:tag")
-      .map((attrs) => attrs.content);
-    assert.deepEqual(articleTags, spec.tags, lang);
-    const links = postTags(html);
-    assert.deepEqual(links.map((link) => link.text), spec.tags, lang);
-    for (const link of links) {
-      assert.equal(link.href.startsWith(`${spec.origin}/`), true, link.href);
-      const tagPage = read(pageFile(lang, new URL(link.href).pathname));
-      assert.equal(canonical(tagPage), link.href.endsWith("/") ? link.href : `${link.href}/`, link.href);
-      assert.match(tagPage, /go-1-28-http2-parking-memory/, link.href);
-      assert.equal(attributes(tagPage.match(/<html\b[^>]*>/i)[0]).lang, lang, link.href);
-      const crumb = tagPage.match(/<nav class="?breadcrumbs"?[^>]*>[\s\S]*?<\/nav>/)?.[0] ?? "";
-      assert.match(crumb, lang === "fa" ? /برچسب‌ها/ : />Tags</, link.href);
+function plainText(value) {
+  return decode(value)
+    .replaceAll("&lt;", "<")
+    .replaceAll("&gt;", ">")
+    .replaceAll("&#34;", '"')
+    .replaceAll("&quot;", '"')
+    .replaceAll("&#39;", "'")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function quotedScalar(raw) {
+  const trimmed = raw.trim();
+  if (trimmed.startsWith("'")) {
+    const end = trimmed.lastIndexOf("'");
+    assert.ok(end > 0, trimmed);
+    return trimmed.slice(1, end).replaceAll("''", "'");
+  }
+  if (trimmed.startsWith('"')) return JSON.parse(trimmed);
+  return trimmed;
+}
+
+function articleFrontMatter(text) {
+  assert.ok(text.startsWith("---\n"), "article front matter is not YAML");
+  const closeAt = text.indexOf("\n---\n", 4);
+  assert.ok(closeAt > 0, "unterminated article front matter");
+  const fields = { summary: "", slug: "", draft: false, keywords: [], tags: [] };
+  let listKey = null;
+  for (const line of text.slice(4, closeAt).split("\n")) {
+    if (!line.trim() || line.trim().startsWith("#")) continue;
+    if (/^\s+-\s+/.test(line)) {
+      assert.ok(listKey, line);
+      fields[listKey].push(quotedScalar(line.replace(/^\s+-\s+/, "")));
+      continue;
     }
-    assert.match(html, /src=(?:"\/js\/chart-zoom\.js"|\/js\/chart-zoom\.js)(?:[\s>]|$)/);
-    assert.equal(html.includes("chart-viewer"), false);
+    listKey = null;
+    const match = /^([A-Za-z0-9_-]+)\s*:\s*(.*)$/.exec(line);
+    if (!match) continue;
+    if (match[1] === "keywords" || match[1] === "tags") {
+      listKey = match[2].trim() ? null : match[1];
+      if (match[2].trim()) fields[match[1]] = [quotedScalar(match[2])];
+      continue;
+    }
+    if (match[1] === "summary") fields.summary = quotedScalar(match[2]);
+    if (match[1] === "slug") fields.slug = quotedScalar(match[2]);
+    if (match[1] === "draft") fields.draft = match[2].trim() === "true";
+  }
+  return fields;
+}
+
+function articleSources(lang) {
+  const files = [];
+  const pending = [path.join(root, "content", lang, "articles")];
+  while (pending.length > 0) {
+    const current = pending.pop();
+    for (const entry of readdirSync(current, { withFileTypes: true })) {
+      const full = path.join(current, entry.name);
+      if (entry.isDirectory()) pending.push(full);
+      else if (entry.name === "index.md") files.push(full);
+    }
+  }
+  return files.sort();
+}
+
+test("published articles use their front matter for description, keywords, and tags", () => {
+  const bySlug = new Map();
+  for (const site of SITES) {
+    for (const file of articleSources(site.lang)) {
+      const matter = articleFrontMatter(readFileSync(file, "utf8"));
+      if (matter.draft) continue;
+      assert.ok(matter.slug, file);
+      const pages = bySlug.get(matter.slug) ?? [];
+      pages.push({ site, matter });
+      bySlug.set(matter.slug, pages);
+    }
+  }
+  assert.ok(bySlug.size > 0);
+
+  for (const [slug, pages] of bySlug) {
+    for (const { site, matter } of pages) {
+      const page = `${site.origin}/articles/${slug}/`;
+      const html = read(pageFile(site.lang, `/articles/${slug}/`));
+      const label = `${site.lang} ${slug}`;
+      assert.equal(canonical(html), page, label);
+      assert.equal(attributes(html.match(/<html\b[^>]*>/i)[0]).lang, site.lang, label);
+      const translation = pages.find((item) => item.site.lang !== site.lang);
+      if (translation) {
+        assert.equal(hreflang(html, translation.site.lang), `${translation.site.origin}/articles/${slug}/`, label);
+      }
+
+      if (matter.summary) {
+        const summary = matter.summary.replace(/\s+/g, " ").trim();
+        assert.equal(plainText(metaContent(html, "description")), summary, label);
+        assert.equal(plainText(metaContent(html, "og:description")), summary, label);
+      }
+      if (matter.keywords.length > 0) {
+        const keywords = plainText(metaContent(html, "keywords"))
+          .split(",")
+          .map((item) => item.trim())
+          .filter(Boolean);
+        assert.deepEqual(keywords, matter.keywords, label);
+      }
+      if (matter.tags.length === 0) continue;
+      const articleTags = metaTags(html)
+        .filter((attrs) => attrs.property === "article:tag")
+        .map((attrs) => plainText(attrs.content ?? ""));
+      assert.deepEqual(articleTags, matter.tags, label);
+      const links = postTags(html);
+      assert.deepEqual(
+        links.map((link) => link.text),
+        matter.tags,
+        label,
+      );
+      for (const link of links) {
+        assert.equal(link.href.startsWith(`${site.origin}/`), true, link.href);
+        const tagPage = read(pageFile(site.lang, new URL(link.href).pathname));
+        assert.equal(canonical(tagPage), link.href.endsWith("/") ? link.href : `${link.href}/`, link.href);
+        assert.match(tagPage, new RegExp(slug.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")), link.href);
+        assert.equal(attributes(tagPage.match(/<html\b[^>]*>/i)[0]).lang, site.lang, link.href);
+        const crumb = tagPage.match(/<nav class="?breadcrumbs"?[^>]*>[\s\S]*?<\/nav>/)?.[0] ?? "";
+        assert.match(crumb, site.lang === "fa" ? /برچسب‌ها/ : />Tags</, link.href);
+      }
+    }
   }
 });

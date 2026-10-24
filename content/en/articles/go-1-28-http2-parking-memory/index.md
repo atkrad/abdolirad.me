@@ -23,9 +23,11 @@ I decided to measure it rather than guess. I wanted to see how it affected proce
 
 ## What is HTTP/2 parking?
 
-An HTTP/2 connection can stay open even when it has no active streams. In the older server behavior, a goroutine stays in the connection's serving loop, waiting for more work. The Go 1.28 development code introduces an internal mechanism called *parking*. When a connection is idle and it is safe to do so, the serving goroutine can exit. A new serving goroutine can start when the connection needs attention again.
+An HTTP/2 connection can stay open even when it has no active streams. In the older server behavior, a goroutine runs the connection's `serveLoop` and waits there when nothing new is ready. The Go 1.28 development code adds an internal mechanism called *parking*. When `serveLoop` has no work ready to process, and the implementation's safety conditions are met, that goroutine can exit. When new work arrives, a new goroutine runs `serveLoop` again.
 
-The word *parking* comes from the Go implementation, including identifiers such as `tryPark` and the temporary `GODEBUG` setting `http2serveparking`. It is not a new public API. The important change is what happens while connections are idle, not how application code handles requests.
+Parking is not limited to connections with no active streams. A handler can still be running while `serveLoop` has nothing immediate to process. If those safety conditions are met, the serving goroutine can be parked. That does not mean every active connection, or every running handler, can be parked.
+
+The word *parking* comes from the Go implementation, including names such as `tryPark` and the temporary `GODEBUG` setting `http2serveparking`. It is not a public API, and the draft release notes do not use this name for the change. The change is how the server manages the goroutine for a connection, not how application code handles requests.
 
 This also gave me a useful way to test the change. I could run the same Go 1.28 server binary with parking enabled and disabled, instead of relying only on a Go 1.27 versus Go 1.28 comparison.
 
@@ -86,6 +88,8 @@ For this experiment, **RSS, goroutine count, and StackInuse** provide a clearer 
 These measurements come from one machine, one benchmark design, and a specific **development revision** of Go 1.28. They are not results from a final Go 1.28 release. I tested mostly idle connections, not a mix of real traffic, active streams, and application workloads.
 
 The benchmark kept the Go 1.28 server binary the same when switching parking on and off. That makes the parking comparison more useful, but it still does not remove all system noise. The three full runs show a repeatable direction and a range, not a universal guarantee.
+
+The `GODEBUG=http2serveparking=0` setting I used for this comparison is temporary and undocumented. I would not treat it as a stable option for future releases.
 
 I have kept the [benchmark source at a fixed commit](https://github.com/atkrad/benchmarks/tree/86753bd4d1f79621a4f3c6927c8239419e54bde2) and the [tested Go revision](https://github.com/golang/go/commit/5c51011e82ed754af072baaf4338ff35e76fe705) linked here so the details can be checked later.
 
