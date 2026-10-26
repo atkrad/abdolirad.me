@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
@@ -34,7 +34,9 @@ test("rendered fixtures embed the font, localize numbers, and stay deterministic
   requireRenderTools();
   const dir = mkdtempSync(path.join(repoRoot, ".chart-fixture-"));
   try {
-    const specPath = path.join(dir, "widget.fa.vl.json");
+    const faDir = path.join(dir, "content", "fa");
+    mkdirSync(faDir, { recursive: true });
+    const specPath = path.join(faDir, "widget.vl.json");
     const spec = {
       title: { text: "Go 1.28، Parking غیرفعال", anchor: "end" },
       data: { values: [{ label: "alpha", amount: 1000 }, { label: "beta", amount: 89.1 }] },
@@ -101,7 +103,7 @@ test("rendered fixtures embed the font, localize numbers, and stay deterministic
   }
 });
 
-test("check mode reports committed svgs that do not match a fresh render", () => {
+test("check mode accepts committed SVG and PNG output", () => {
   requireRenderTools();
   const result = spawnSync(process.execPath, [path.join(repoRoot, "charts", "render.mjs"), "--check"], {
     cwd: repoRoot,

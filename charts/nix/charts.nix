@@ -2,11 +2,13 @@
   writeShellApplication,
   writeText,
   runCommand,
+  lib,
   nodejs_24,
   vl-convert,
   vazirmatn,
   python3,
   harfbuzz,
+  chromium,
 }:
 
 let
@@ -43,13 +45,17 @@ writeShellApplication {
     # hb-shape lives in the dev output. SVG images ignore bidi isolates, so the
     # renderer measures each directional run and places it explicitly.
     harfbuzz.dev
+    # PNG companions are Chromium screenshots of the SVG as an <img>.
+    chromium
   ];
   passthru = {
     inherit fontDir fontConfig;
+    browser = lib.getExe chromium;
   };
   text = ''
     export CHARTS_FONT_DIR=${fontDir}
     export FONTCONFIG_FILE=${fontConfig}
+    export CHARTS_BROWSER=${lib.getExe chromium}
     exec node ${../render.mjs} "$@"
   '';
 }

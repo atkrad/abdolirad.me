@@ -7,6 +7,7 @@ on:
       - "content/**/*.vl.json"
       - "content/**/*.csv"
       - "content/**/*.svg"
+      - "content/**/*.png"
       - "flake.nix"
       - "flake.lock"
       - "package.json"
