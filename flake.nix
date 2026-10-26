@@ -55,11 +55,13 @@
                 ps.brotli
               ]))
               pkgs.harfbuzz.dev
+              pkgs.chromium
             ];
             shellHook = ''
               export PATH="$PWD/node_modules/.bin:$PATH"
               export CHARTS_FONT_DIR=${self.packages.${system}.charts.fontDir}
               export FONTCONFIG_FILE=${self.packages.${system}.charts.fontConfig}
+              export CHARTS_BROWSER=${pkgs.lib.getExe pkgs.chromium}
             '';
           };
         }

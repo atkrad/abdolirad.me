@@ -16,7 +16,7 @@ npm run dev
 
 `npm test` reads `public/`, so build first. Cloudflare runs the same build. It does not render charts; it only checks that each content SVG has a committed PNG. `npm run dev` serves the build.
 
-`npm run test:charts` needs `vl-convert`, `pyftsubset`, `hb-shape`, and `CHARTS_FONT_DIR` from the Nix shell:
+`npm run test:charts` needs `vl-convert`, `pyftsubset`, `hb-shape`, Chromium (`CHARTS_BROWSER`), and `CHARTS_FONT_DIR` from the Nix shell:
 
 ```sh
 nix develop -c npm run test:charts

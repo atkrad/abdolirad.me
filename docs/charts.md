@@ -12,7 +12,9 @@ Shared style lives in `charts/theme.json`. Specs may override it. Keep `data.url
 
 Commit the spec, CSV, SVG, and PNG. `npm run build` does not re-render charts. On Cloudflare it only checks that each content SVG has a PNG companion. Inside `nix develop`, `npm run test:charts` compares a fresh render with the committed files.
 
-The CLI is `vl-convert` 1.9.0, built in `charts/nix/vl-convert.nix`. Text uses Vazirmatn from Nixpkgs. Each SVG embeds a font subset as `Vazirmatn Embedded` so the chart keeps that face when shown as an image. PNG conversion maps that family back to the TTF files in `CHARTS_FONT_DIR`, because `svg2png` does not paint the embedded WOFF2 data. Vazirmatn is SIL OFL 1.1; see `charts/FONT-LICENSE.txt`.
+SVG output uses `vl-convert` 1.9.0 (`charts/nix/vl-convert.nix`) and Vazirmatn from Nixpkgs. Each SVG embeds a font subset as `Vazirmatn Embedded` so the chart keeps that face when shown as an image. Vazirmatn is SIL OFL 1.1; see `charts/FONT-LICENSE.txt`.
+
+PNG companions are Chromium screenshots of that SVG as an `<img>` at 2x CSS size. That matches browser text layout for mixed Persian and English labels. `vl-convert svg2png` (resvg) misplaces the absolute `tspan` runs used for those labels, so it is not used for PNG. The Nix shell sets `CHARTS_BROWSER` to a pinned Chromium.
 
 Specs under `content/fa` use Persian digits on pure numeric labels. Specs under `content/en` keep ASCII digits.
 

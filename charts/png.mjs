@@ -17,8 +17,7 @@ import { contentRoots } from "./render.mjs";
 
 const PNG_SIGNATURE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 const SCALE = 2;
-const EMBEDDED_FAMILY = "Vazirmatn Embedded";
-const RASTER_FAMILY = "Vazirmatn";
+const BROWSER_CANDIDATES = ["chromium", "google-chrome", "chromium-browser", "chrome"];
 
 const repoRoot = process.cwd();
 
@@ -33,13 +32,16 @@ function help() {
 Write a 2x PNG next to every content SVG under the Hugo content roots.
 Theme icons and other files outside those roots are ignored.
 
-Needs vl-convert and CHARTS_FONT_DIR to convert. Without them, the command
-only checks that each SVG already has a PNG companion (Cloudflare builds).
+Needs a Chromium-based browser (CHARTS_BROWSER) to convert. Without one, the
+command only checks that each SVG already has a PNG companion (Cloudflare builds).
+
+Chromium screenshots the SVG as an <img>, so embedded fonts and the absolute
+tspan layout used for mixed RTL labels match what browsers show.
 
 Options:
   --help           Show this help
-  --check          Compare a fresh PNG with the committed file. Needs conversion
-                   tools. Does not modify the tree.
+  --check          Compare a fresh PNG with the committed file. Needs a browser.
+                   Does not modify the tree.
   --path <path>    Limit to one .svg or .vl.json file, or every SVG under a directory
 `);
 }
@@ -122,53 +124,105 @@ export function pngPathFor(svgPath) {
   return `${svgPath.slice(0, -".svg".length)}.png`;
 }
 
-// vl-convert svg2png does not paint WOFF2 data URLs. Point text at the TTF
-// files in CHARTS_FONT_DIR instead, and drop only the embedded @font-face rules.
-export function prepareSvgForRaster(svgText) {
-  if (!svgText.includes(EMBEDDED_FAMILY)) return svgText;
-  let next = svgText.replaceAll(EMBEDDED_FAMILY, RASTER_FAMILY);
-  next = next.replace(/@font-face\{[^}]*data:font\/woff2;base64,[^}]*\}/g, "");
-  next = next.replace(/<defs><style type="text\/css"><!\[CDATA\[\s*\]\]><\/style><\/defs>/g, "");
-  return next;
+export function svgPixelSize(svgText) {
+  const width = Number((svgText.match(/\bwidth="([0-9.]+)"/) || [])[1]);
+  const height = Number((svgText.match(/\bheight="([0-9.]+)"/) || [])[1]);
+  if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) {
+    throw new Error("SVG is missing numeric width and height attributes");
+  }
+  return { width, height };
+}
+
+function which(command) {
+  // `command -v` is a shell builtin; spawn through sh so PATH lookup works.
+  const result = spawnSync("sh", ["-c", 'command -v "$1"', "sh", command], { encoding: "utf8" });
+  if (result.error || result.status !== 0) return null;
+  const resolved = (result.stdout || "").trim();
+  return resolved || null;
+}
+
+export function resolveBrowser(explicit = process.env.CHARTS_BROWSER || "") {
+  if (explicit) {
+    if (!existsSync(explicit)) throw new Error(`CHARTS_BROWSER does not exist: ${explicit}`);
+    return explicit;
+  }
+  for (const name of BROWSER_CANDIDATES) {
+    const found = which(name);
+    if (found) return found;
+  }
+  return null;
 }
 
 export function isPngBuffer(buffer) {
   return Buffer.isBuffer(buffer) && buffer.length >= 8 && buffer.subarray(0, 8).equals(PNG_SIGNATURE);
 }
 
-export function canConvert({ fontDir = process.env.CHARTS_FONT_DIR || "", vlConvert = "vl-convert" } = {}) {
-  if (!fontDir || !existsSync(fontDir)) return false;
-  const result = spawnSync(vlConvert, ["--help"], { encoding: "utf8" });
-  return !result.error && result.status === 0;
+// Only convert when Nix (or the caller) sets CHARTS_BROWSER. A random Chrome on
+// PATH would rewrite committed PNGs during plain `npm run build` and break --check.
+export function canConvert({ browser = process.env.CHARTS_BROWSER || "" } = {}) {
+  return Boolean(browser && existsSync(browser));
 }
 
-export function convertSvgToPng(svgPath, { fontDir, vlConvert = "vl-convert", scale = SCALE, workDir } = {}) {
-  if (!fontDir || !existsSync(fontDir)) {
-    throw new Error("CHARTS_FONT_DIR is not set or does not exist");
+export function rasterPageHtml(svgFileName, cssWidth, cssHeight) {
+  return `<!doctype html>
+<html><head><meta charset="utf-8">
+<style>
+html,body{margin:0;width:${cssWidth}px;height:${cssHeight}px;background:#fff;overflow:hidden}
+img{display:block;width:${cssWidth}px;height:${cssHeight}px}
+</style></head>
+<body><img src="${svgFileName}" width="${cssWidth}" height="${cssHeight}" alt=""></body></html>
+`;
+}
+
+export function convertSvgToPng(
+  svgPath,
+  { browser = process.env.CHARTS_BROWSER || "", scale = SCALE, workDir } = {},
+) {
+  const binary = resolveBrowser(browser);
+  if (!binary) {
+    throw new Error("no Chromium browser found; set CHARTS_BROWSER or run inside nix develop");
   }
   const source = readFileSync(svgPath, "utf8");
   if (!source.includes("<svg")) throw new Error(`${relative(svgPath)} is not an SVG`);
-  const prepared = prepareSvgForRaster(source);
+  const { width, height } = svgPixelSize(source);
+  const cssWidth = Math.round(width * scale);
+  const cssHeight = Math.round(height * scale);
+
   const ownWork = !workDir;
   const work = workDir || mkdtempSync(path.join(tmpdir(), "abdolirad-png-"));
   try {
     const id = createHash("sha256").update(svgPath).digest("hex").slice(0, 16);
-    const input = path.join(work, `${id}.svg`);
+    const inputSvg = path.join(work, `${id}.svg`);
+    const inputHtml = path.join(work, `${id}.html`);
     const output = path.join(work, `${id}.png`);
-    writeFileSync(input, prepared);
+    writeFileSync(inputSvg, source);
+    writeFileSync(inputHtml, rasterPageHtml(path.basename(inputSvg), cssWidth, cssHeight));
+
     const result = spawnSync(
-      vlConvert,
-      ["svg2png", "--input", input, "--output", output, "--scale", String(scale), "--font-dir", fontDir],
+      binary,
+      [
+        "--headless=new",
+        "--disable-gpu",
+        "--no-sandbox",
+        "--hide-scrollbars",
+        "--virtual-time-budget=5000",
+        "--force-device-scale-factor=1",
+        `--window-size=${cssWidth},${cssHeight}`,
+        `--screenshot=${output}`,
+        pathToFileURL(inputHtml).href,
+      ],
       { encoding: "utf8" },
     );
-    if (result.error) throw new Error(`${relative(svgPath)}: failed to run vl-convert: ${result.error.message}`);
+    if (result.error) {
+      throw new Error(`${relative(svgPath)}: failed to run browser: ${result.error.message}`);
+    }
     if (result.status !== 0) {
       const detail = `${result.stderr || ""}${result.stdout || ""}`.trim();
-      throw new Error(`${relative(svgPath)}: vl-convert svg2png failed\n${detail}`);
+      throw new Error(`${relative(svgPath)}: browser screenshot failed\n${detail}`);
     }
-    if (!existsSync(output)) throw new Error(`${relative(svgPath)}: vl-convert wrote no PNG`);
+    if (!existsSync(output)) throw new Error(`${relative(svgPath)}: browser wrote no PNG`);
     const png = readFileSync(output);
-    if (!isPngBuffer(png)) throw new Error(`${relative(svgPath)}: vl-convert wrote a non-PNG file`);
+    if (!isPngBuffer(png)) throw new Error(`${relative(svgPath)}: browser wrote a non-PNG file`);
     return png;
   } finally {
     if (ownWork) rmSync(work, { recursive: true, force: true });
@@ -208,16 +262,15 @@ function main() {
   }
 
   if (check && !canConvert()) {
-    fail("--check needs vl-convert and CHARTS_FONT_DIR; run inside nix develop");
+    fail("--check needs a Chromium browser; set CHARTS_BROWSER or run inside nix develop");
   }
 
   if (!canConvert()) {
-    console.log("vl-convert or CHARTS_FONT_DIR unavailable; verifying committed PNG companions");
+    console.log("Chromium browser unavailable; verifying committed PNG companions");
     requireCompanions(svgs);
     return;
   }
 
-  const fontDir = process.env.CHARTS_FONT_DIR;
   const work = mkdtempSync(path.join(tmpdir(), "abdolirad-png-"));
   try {
     let stale = false;
@@ -225,7 +278,7 @@ function main() {
       const dest = pngPathFor(svg);
       let png;
       try {
-        png = convertSvgToPng(svg, { fontDir, workDir: work });
+        png = convertSvgToPng(svg, { workDir: work });
       } catch (error) {
         fail(error.message);
       }

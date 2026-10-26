@@ -3,7 +3,12 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
-import { discoverContentSvgs, prepareSvgForRaster, selectSvgs } from "./png.mjs";
+import {
+  discoverContentSvgs,
+  rasterPageHtml,
+  selectSvgs,
+  svgPixelSize,
+} from "./png.mjs";
 import { contentRoots } from "./render.mjs";
 
 test("discovery stays inside content roots and accepts svg or vl.json paths", () => {
@@ -40,20 +45,12 @@ test("discovery stays inside content roots and accepts svg or vl.json paths", ()
   }
 });
 
-test("raster preparation rewrites embedded fonts without dropping other style rules", () => {
-  const svg = [
-    "<svg>",
-    '<defs><style type="text/css"><![CDATA[',
-    '@font-face{font-family:"Vazirmatn Embedded";src:url("data:font/woff2;base64,AA==") format("woff2");}',
-    ".mark{opacity:0.9}",
-    "]]></style></defs>",
-    '<text font-family="Vazirmatn Embedded">Hi</text>',
-    "</svg>",
-  ].join("");
-  const prepared = prepareSvgForRaster(svg);
-  assert.equal(prepared.includes("Vazirmatn Embedded"), false);
-  assert.match(prepared, /font-family="Vazirmatn"/);
-  assert.equal(prepared.includes("data:font/woff2"), false);
-  assert.match(prepared, /\.mark\{opacity:0\.9\}/);
-  assert.equal(prepareSvgForRaster('<svg><text font-family="Other">x</text></svg>'), '<svg><text font-family="Other">x</text></svg>');
+test("svg size parsing and raster page keep a 2x <img> layout", () => {
+  assert.deepEqual(svgPixelSize('<svg width="699" height="482"></svg>'), { width: 699, height: 482 });
+  assert.throws(() => svgPixelSize("<svg></svg>"), /width and height/);
+  const html = rasterPageHtml("chart.svg", 1398, 964);
+  assert.match(html, /src="chart\.svg"/);
+  assert.match(html, /width:1398px/);
+  assert.match(html, /height:964px/);
+  assert.match(html, /<img src="chart\.svg" width="1398" height="964"/);
 });
