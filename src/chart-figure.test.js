@@ -31,20 +31,20 @@ function buildFixture() {
     "en/articles/notes/index.md": page(
       "Notes",
       { date: "2024-05-01T00:00:00Z", slug: "notes" },
-      "A paragraph.\n\n![Plain diagram](diagram.png)\n\n![Widget counts for the north wing](widget.en.svg)\n",
+      "A paragraph.\n\n![Plain diagram](diagram.png)\n\n![Widget counts for the north wing](widget.svg)\n",
     ),
     "en/articles/notes/diagram.png": TINY_PNG,
-    "en/articles/notes/widget.en.svg": SAMPLE_SVG,
-    "en/articles/notes/widget.en.vl.json": "{}\n",
+    "en/articles/notes/widget.svg": SAMPLE_SVG,
+    "en/articles/notes/widget.vl.json": "{}\n",
     "en/articles/plain/index.md": page("Plain", { date: "2024-04-01T00:00:00Z", slug: "plain" }, "No chart here.\n"),
     "fa/articles/notes/index.md": page(
       "یادداشت",
       { date: "2024-05-01T00:00:00Z", slug: "notes" },
-      "یک پاراگراف.\n\n![نمودار ساده](diagram.png)\n\n![شمارش ویجت برای بال شمالی](widget.fa.svg)\n",
+      "یک پاراگراف.\n\n![نمودار ساده](diagram.png)\n\n![شمارش ویجت برای بال شمالی](widget.svg)\n",
     ),
     "fa/articles/notes/diagram.png": TINY_PNG,
-    "fa/articles/notes/widget.fa.svg": SAMPLE_SVG,
-    "fa/articles/notes/widget.fa.vl.json": "{}\n",
+    "fa/articles/notes/widget.svg": SAMPLE_SVG,
+    "fa/articles/notes/widget.vl.json": "{}\n",
   };
   for (const [relative, text] of Object.entries(files)) {
     const file = path.join(contentDir, relative);
@@ -88,7 +88,7 @@ test("chart images use medium-zoom and ordinary images stay plain", () => {
       assert.equal(/<figure\b/.test(html), false);
       assert.match(html, /<p>\s*<img\b[^>]*class="chart-figure"[^>]*>\s*<\/p>/);
       assert.match(html, /<img[^>]*alt="(?:Widget counts for the north wing|شمارش ویجت برای بال شمالی)"[^>]*>/);
-      assert.match(html, /src="[^"]*widget\.(?:en|fa)\.svg"/);
+      assert.match(html, /src="[^"]*widget\.svg"/);
       assert.match(html, /src=(?:"\/js\/chart-zoom\.js"|\/js\/chart-zoom\.js)(?:[\s>]|$)/);
       assert.equal(html.includes("chart-figure__full"), false);
       assert.equal(html.includes("View larger"), false);

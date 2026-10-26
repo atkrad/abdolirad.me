@@ -28,8 +28,9 @@ function help() {
   console.log(`Usage: nix run .#charts -- [options]
 
 Find Vega-Lite specs under the Hugo content roots and write an SVG next to each one.
-A file named chart.en.vl.json becomes chart.en.svg in the same directory.
-Locale segments are part of the filename. Nothing is registered by language or article.
+A file named chart.vl.json becomes chart.svg in the same directory.
+Language comes from the content directory (content/en, content/fa), not the filename.
+After each SVG is written, the matching PNG is refreshed with charts/png.mjs.
 
 Options:
   --help           Show this help
@@ -418,8 +419,16 @@ const PERSIAN_DIGITS = "۰۱۲۳۴۵۶۷۸۹";
 const ASCII_NUMBER = /^-?(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?$/;
 const LOCALIZED_NUMBER = /^-?(?:[0-9۰-۹]{1,3}(?:[,\u066C][0-9۰-۹]{3})+|[0-9۰-۹]+)(?:[.\u066B][0-9۰-۹]+)?$/;
 
-export function localeOf(specPath) {
-  const match = path.basename(specPath).match(/\.([a-z]{2})\.vl\.json$/);
+// Language comes from content/<lang>/ when present. A trailing .fa. before
+// .vl.json or .svg remains a fixture fallback for tests outside those trees.
+export function localeOf(filePath) {
+  const parts = path.resolve(filePath).split(path.sep);
+  for (let index = 0; index < parts.length - 1; index += 1) {
+    if (parts[index] === "content" && /^[a-z]{2}$/.test(parts[index + 1])) {
+      return parts[index + 1];
+    }
+  }
+  const match = path.basename(filePath).match(/\.([a-z]{2})\.(?:vl\.json|svg)$/);
   return match?.[1] === "fa" ? "fa" : "en";
 }
 
@@ -761,6 +770,19 @@ function main() {
   } finally {
     rmSync(work, { recursive: true, force: true });
   }
+
+  const pngScript = path.join(repoRoot, "charts", "png.mjs");
+  const pngArgs = [pngScript];
+  if (only) pngArgs.push("--path", only);
+  if (check) pngArgs.push("--check");
+  const png = spawnSync(process.execPath, pngArgs, {
+    cwd: repoRoot,
+    encoding: "utf8",
+    env: process.env,
+    stdio: "inherit",
+  });
+  if (png.error) fail(`failed to run charts/png.mjs: ${png.error.message}`);
+  if (png.status !== 0) process.exit(png.status ?? 1);
 }
 
 const invokedDirectly = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;

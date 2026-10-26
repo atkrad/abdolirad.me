@@ -59,21 +59,21 @@ The largest difference appeared at 5,000 idle connections. The table below shows
 
 Compared with the **same Go 1.28 binary with parking disabled**, enabling parking reduced RSS by **84.7 to 92.6 MiB**, or about **38.9% to 41.4%**, across the three runs. At 1,000 idle connections, the reduction was smaller but still clear, at about **15.7 to 16.6 MiB**.
 
-![Median server RSS at different numbers of idle HTTP/2 connections](01-rss-scaling.en.svg)
+![Median server RSS at different numbers of idle HTTP/2 connections](01-rss-scaling.svg)
 
 The zero-connection baseline stayed close to 8.5 to 8.7 MiB across the configurations. I also calculated baseline-adjusted RSS by subtracting each configuration's zero-connection median. That helps show the growth associated with idle connections, but the main comparison above uses the observed process RSS.
 
-![RSS reduction with parking enabled](02-rss-savings.en.svg)
+![RSS reduction with parking enabled](02-rss-savings.svg)
 
 ## Fewer goroutines, less stack memory
 
 The goroutine counts helped explain the shape of the result. With 5,000 idle connections, Go 1.28 reported about **10,007 goroutines with parking disabled** and **5,007 with parking enabled**. That is a difference of exactly **5,000 goroutines** in this benchmark. At 1,000 idle connections, the difference was 1,000 goroutines.
 
-![Goroutine counts by idle connection count](03-goroutines.en.svg)
+![Goroutine counts by idle connection count](03-goroutines.svg)
 
 The stack numbers moved in the same direction. At 5,000 connections, **StackInuse** was about **99 MiB with parking disabled** and about **21 MiB with parking enabled**. The reduction was close to **78 MiB** in all three complete runs.
 
-![Stack and heap memory at 5,000 idle connections](04-memory-breakdown.en.svg)
+![Stack and heap memory at 5,000 idle connections](04-memory-breakdown.svg)
 
 This does not mean that every byte saved in RSS came from stacks. RSS includes more than Go stacks, and changes in heap allocation, runtime state, and the operating system can affect it. It does show that the lower goroutine and stack counts are consistent with the parking mechanism.
 

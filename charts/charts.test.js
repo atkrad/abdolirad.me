@@ -93,7 +93,9 @@ function walkSpecs(dir, found = []) {
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
     const full = path.join(dir, entry.name);
     if (entry.isDirectory()) walkSpecs(full, found);
-    else if (entry.name.endsWith(".en.vl.json")) found.push(full);
+    else if (entry.name.endsWith(".vl.json") && full.includes(`${path.sep}content${path.sep}en${path.sep}`)) {
+      found.push(full);
+    }
   }
   return found;
 }
@@ -117,9 +119,10 @@ test("published locale pairs keep the same chart encoding", () => {
   const specs = walkSpecs(path.join(repoRoot, "content"));
   assert.ok(specs.length > 0);
   for (const englishPath of specs) {
-    const persianPath = englishPath
-      .replace(`${path.sep}content${path.sep}en${path.sep}`, `${path.sep}content${path.sep}fa${path.sep}`)
-      .replace(/\.en\.vl\.json$/, ".fa.vl.json");
+    const persianPath = englishPath.replace(
+      `${path.sep}content${path.sep}en${path.sep}`,
+      `${path.sep}content${path.sep}fa${path.sep}`,
+    );
     assert.equal(existsSync(persianPath), true, persianPath);
     const english = JSON.parse(readFileSync(englishPath, "utf8"));
     const persian = JSON.parse(readFileSync(persianPath, "utf8"));
@@ -130,6 +133,8 @@ test("published locale pairs keep the same chart encoding", () => {
     assert.equal(localeOf(persianPath), "fa");
   }
   assert.equal(localeOf("notes/wing.vl.json"), "en");
+  assert.equal(localeOf("content/fa/notes/wing.vl.json"), "fa");
+  assert.equal(localeOf("tmp/widget.fa.vl.json"), "fa");
 });
 
 test("csv parsing keeps quoted commas and numeric columns", () => {
@@ -156,10 +161,10 @@ test("discovery stays inside the configured content roots", () => {
   try {
     mkdirSync(path.join(root, "stories", "nested"), { recursive: true });
     writeFileSync(path.join(root, "hugo.yaml"), "languages:\n  en:\n    contentDir: stories\n");
-    const inside = path.join(root, "stories", "nested", "plot.en.vl.json");
+    const inside = path.join(root, "stories", "nested", "plot.vl.json");
     writeFileSync(inside, "{}\n");
     writeFileSync(path.join(root, "stories", "notes.txt"), "skip\n");
-    const outside = path.join(root, "plot.en.vl.json");
+    const outside = path.join(root, "plot.vl.json");
     writeFileSync(outside, "{}\n");
     const specs = discover(contentRoots(root));
     assert.deepEqual(specs, [inside]);
@@ -221,7 +226,7 @@ test("a prepared spec inlines local csv and rejects a bad file", () => {
   mkdirSync(dir);
   try {
     writeFileSync(path.join(dir, "rows.csv"), "name,amount\nalpha,3.5\n");
-    const specPath = path.join(dir, "rows.en.vl.json");
+    const specPath = path.join(dir, "rows.vl.json");
     writeFileSync(specPath, JSON.stringify({ data: { url: "rows.csv" }, mark: "bar" }));
     const prepared = prepare(specPath, theme);
     assert.deepEqual(prepared.data.values, [{ name: "alpha", amount: 3.5 }]);
