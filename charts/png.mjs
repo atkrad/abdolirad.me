@@ -30,27 +30,22 @@ function fail(message) {
 function help() {
   console.log(`Usage: node charts/png.mjs [options]
 
-Discover content SVG files under the Hugo content roots and write a PNG next
-to each one. Language comes from the content directory, not the filename.
-Theme icons and other non-content SVGs are ignored.
+Write a 2x PNG next to every content SVG under the Hugo content roots.
+Theme icons and other files outside those roots are ignored.
 
-When vl-convert and CHARTS_FONT_DIR are available, SVGs are rasterized at ${SCALE}x
-scale. Otherwise the command only checks that each SVG already has a PNG
-companion (the Cloudflare build path).
+Needs vl-convert and CHARTS_FONT_DIR to convert. Without them, the command
+only checks that each SVG already has a PNG companion (Cloudflare builds).
 
 Options:
   --help           Show this help
-  --check          Regenerate PNGs in a temporary directory and compare them
-                   with the committed files when conversion is available.
-                   Otherwise verify companions exist. Do not modify the tree.
-  --require        Only verify companions. Never convert.
-  --path <path>    Convert or check one .svg file, or every SVG under a directory
+  --check          Compare a fresh PNG with the committed file. Needs conversion
+                   tools. Does not modify the tree.
+  --path <path>    Limit to one .svg or .vl.json file, or every SVG under a directory
 `);
 }
 
 function parseArgs(argv) {
   let check = false;
-  let requireOnly = false;
   let only = null;
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index];
@@ -59,8 +54,6 @@ function parseArgs(argv) {
       process.exit(0);
     } else if (arg === "--check") {
       check = true;
-    } else if (arg === "--require") {
-      requireOnly = true;
     } else if (arg === "--path") {
       only = argv[index + 1];
       if (!only || only.startsWith("--")) fail("missing value for --path");
@@ -69,7 +62,7 @@ function parseArgs(argv) {
       fail(`unknown argument ${arg}`);
     }
   }
-  return { check, requireOnly, only };
+  return { check, only };
 }
 
 function relative(file) {
@@ -100,12 +93,20 @@ export function discoverContentSvgs(roots) {
   return found;
 }
 
+function resolveSelectionTarget(only) {
+  let target = path.resolve(repoRoot, only);
+  if (!existsSync(target)) throw new Error(`path not found: ${only}`);
+  // charts --path may pass a .vl.json; the PNG lives next to the matching SVG.
+  if (statSync(target).isFile() && target.endsWith(".vl.json")) {
+    target = `${target.slice(0, -".vl.json".length)}.svg`;
+  }
+  return target;
+}
+
 export function selectSvgs(svgs, only) {
   if (!only) return svgs;
-  const target = path.resolve(repoRoot, only);
-  if (!existsSync(target)) throw new Error(`path not found: ${only}`);
-  const info = statSync(target);
-  if (info.isFile()) {
+  const target = resolveSelectionTarget(only);
+  if (statSync(target).isFile()) {
     if (!target.endsWith(".svg")) throw new Error(`not an SVG file: ${only}`);
     if (!svgs.includes(target)) throw new Error(`SVG is outside the Hugo content roots: ${only}`);
     return [target];
@@ -121,45 +122,18 @@ export function pngPathFor(svgPath) {
   return `${svgPath.slice(0, -".svg".length)}.png`;
 }
 
-export function assertNoLanguageSuffixCollisions(svgs) {
-  const byDir = new Map();
-  for (const svg of svgs) {
-    const dir = path.dirname(svg);
-    const base = path.basename(svg);
-    const stripped = base.replace(/\.([a-z]{2})\.svg$/, ".svg");
-    if (stripped === base) continue;
-    const group = byDir.get(dir) ?? new Set();
-    group.add(stripped);
-    byDir.set(dir, group);
-    const conflict = path.join(dir, stripped);
-    if (svgs.includes(conflict)) {
-      throw new Error(
-        `filename collision: ${relative(svg)} and ${relative(conflict)} would share ${stripped}`,
-      );
-    }
-  }
-}
-
+// vl-convert svg2png does not paint WOFF2 data URLs. Point text at the TTF
+// files in CHARTS_FONT_DIR instead, and drop only the embedded @font-face rules.
 export function prepareSvgForRaster(svgText) {
-  if (!svgText.includes(`font-family="${EMBEDDED_FAMILY}"`) && !svgText.includes(`font-family='${EMBEDDED_FAMILY}'`)) {
-    return svgText;
-  }
+  if (!svgText.includes(EMBEDDED_FAMILY)) return svgText;
   let next = svgText.replaceAll(EMBEDDED_FAMILY, RASTER_FAMILY);
-  next = next.replace(/<defs><style type="text\/css"><!\[CDATA\[[\s\S]*?\]\]><\/style><\/defs>/, "");
+  next = next.replace(/@font-face\{[^}]*data:font\/woff2;base64,[^}]*\}/g, "");
+  next = next.replace(/<defs><style type="text\/css"><!\[CDATA\[\s*\]\]><\/style><\/defs>/g, "");
   return next;
 }
 
 export function isPngBuffer(buffer) {
   return Buffer.isBuffer(buffer) && buffer.length >= 8 && buffer.subarray(0, 8).equals(PNG_SIGNATURE);
-}
-
-export function pngDimensions(buffer) {
-  if (!isPngBuffer(buffer) || buffer.length < 24) throw new Error("not a PNG buffer");
-  return { width: buffer.readUInt32BE(16), height: buffer.readUInt32BE(20) };
-}
-
-function hashOf(buffer) {
-  return createHash("sha256").update(buffer).digest("hex");
 }
 
 export function canConvert({ fontDir = process.env.CHARTS_FONT_DIR || "", vlConvert = "vl-convert" } = {}) {
@@ -178,8 +152,9 @@ export function convertSvgToPng(svgPath, { fontDir, vlConvert = "vl-convert", sc
   const ownWork = !workDir;
   const work = workDir || mkdtempSync(path.join(tmpdir(), "abdolirad-png-"));
   try {
-    const input = path.join(work, `${hashOf(Buffer.from(svgPath)).slice(0, 16)}.svg`);
-    const output = path.join(work, `${path.basename(svgPath, ".svg")}.png`);
+    const id = createHash("sha256").update(svgPath).digest("hex").slice(0, 16);
+    const input = path.join(work, `${id}.svg`);
+    const output = path.join(work, `${id}.png`);
     writeFileSync(input, prepared);
     const result = spawnSync(
       vlConvert,
@@ -205,14 +180,8 @@ function requireCompanions(svgs) {
   for (const svg of svgs) {
     const dest = pngPathFor(svg);
     const label = relative(dest);
-    if (!existsSync(dest)) {
+    if (!existsSync(dest) || !isPngBuffer(readFileSync(dest))) {
       console.error(`missing ${label}`);
-      missing = true;
-      continue;
-    }
-    const png = readFileSync(dest);
-    if (!isPngBuffer(png)) {
-      console.error(`invalid PNG ${label}`);
       missing = true;
       continue;
     }
@@ -226,11 +195,10 @@ function requireCompanions(svgs) {
 }
 
 function main() {
-  const { check, requireOnly, only } = parseArgs(process.argv.slice(2));
+  const { check, only } = parseArgs(process.argv.slice(2));
   let svgs;
   try {
     svgs = selectSvgs(discoverContentSvgs(contentRoots()), only);
-    assertNoLanguageSuffixCollisions(svgs);
   } catch (error) {
     fail(error.message);
   }
@@ -239,10 +207,12 @@ function main() {
     return;
   }
 
-  if (requireOnly || !canConvert()) {
-    if (!requireOnly && !canConvert()) {
-      console.log("vl-convert or CHARTS_FONT_DIR unavailable; verifying committed PNG companions");
-    }
+  if (check && !canConvert()) {
+    fail("--check needs vl-convert and CHARTS_FONT_DIR; run inside nix develop");
+  }
+
+  if (!canConvert()) {
+    console.log("vl-convert or CHARTS_FONT_DIR unavailable; verifying committed PNG companions");
     requireCompanions(svgs);
     return;
   }
@@ -261,14 +231,8 @@ function main() {
       }
       const label = relative(dest);
       if (check) {
-        if (!existsSync(dest)) {
-          console.error(`missing ${label}`);
-          stale = true;
-          continue;
-        }
-        const current = readFileSync(dest);
-        if (!current.equals(png)) {
-          console.error(`stale ${label}`);
+        if (!existsSync(dest) || !readFileSync(dest).equals(png)) {
+          console.error(existsSync(dest) ? `stale ${label}` : `missing ${label}`);
           stale = true;
           continue;
         }

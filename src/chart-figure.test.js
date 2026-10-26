@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -35,6 +35,7 @@ function buildFixture() {
     ),
     "en/articles/notes/diagram.png": TINY_PNG,
     "en/articles/notes/widget.svg": SAMPLE_SVG,
+    "en/articles/notes/widget.png": TINY_PNG,
     "en/articles/notes/widget.vl.json": "{}\n",
     "en/articles/plain/index.md": page("Plain", { date: "2024-04-01T00:00:00Z", slug: "plain" }, "No chart here.\n"),
     "fa/articles/notes/index.md": page(
@@ -44,6 +45,7 @@ function buildFixture() {
     ),
     "fa/articles/notes/diagram.png": TINY_PNG,
     "fa/articles/notes/widget.svg": SAMPLE_SVG,
+    "fa/articles/notes/widget.png": Buffer.from("fa-widget-png\n"),
     "fa/articles/notes/widget.vl.json": "{}\n",
   };
   for (const [relative, text] of Object.entries(files)) {
@@ -102,6 +104,16 @@ test("chart images use medium-zoom and ordinary images stay plain", () => {
     const plainArticle = readFileSync(path.join(built.publicDir, "en/articles/plain/index.html"), "utf8");
     assert.equal(plainArticle.includes("chart-figure"), false);
     assert.equal(plainArticle.includes("chart-zoom"), false);
+
+    const englishSvg = path.join(built.publicDir, "en/articles/notes/widget.svg");
+    const englishPng = path.join(built.publicDir, "en/articles/notes/widget.png");
+    const persianSvg = path.join(built.publicDir, "fa/articles/notes/widget.svg");
+    const persianPng = path.join(built.publicDir, "fa/articles/notes/widget.png");
+    assert.equal(existsSync(englishSvg), true);
+    assert.equal(existsSync(englishPng), true);
+    assert.equal(existsSync(persianSvg), true);
+    assert.equal(existsSync(persianPng), true);
+    assert.equal(readFileSync(englishPng).equals(readFileSync(persianPng)), false);
   } finally {
     rmSync(built.dir, { recursive: true, force: true });
   }

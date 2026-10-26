@@ -702,35 +702,3 @@ test("published articles use their front matter for description, keywords, and t
     }
   }
 });
-
-test("chart page bundles publish language-local SVG and PNG without filename suffixes", () => {
-  const charts = [
-    "01-rss-scaling",
-    "02-rss-savings",
-    "03-goroutines",
-    "04-memory-breakdown",
-  ];
-  const englishPngs = [];
-  const persianPngs = [];
-  for (const site of SITES) {
-    const html = read(`public/${site.lang}/articles/go-1-28-http2-parking-memory/index.html`);
-    assert.equal(canonical(html), `${site.origin}/articles/go-1-28-http2-parking-memory/`);
-    assert.equal(html.includes(".en.svg"), false);
-    assert.equal(html.includes(".fa.svg"), false);
-    assert.equal([...html.matchAll(/class="?chart-figure\b/g)].length, 4);
-    for (const name of charts) {
-      assert.match(html, new RegExp(`/articles/go-1-28-http2-parking-memory/${name}\\.svg`));
-      const svg = path.join(root, "public", site.lang, "articles", "go-1-28-http2-parking-memory", `${name}.svg`);
-      const png = path.join(root, "public", site.lang, "articles", "go-1-28-http2-parking-memory", `${name}.png`);
-      assert.equal(existsSync(svg), true, svg);
-      assert.equal(existsSync(png), true, png);
-      const bytes = readFileSync(png);
-      assert.equal(bytes.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])), true, png);
-      if (site.lang === "en") englishPngs.push(bytes);
-      else persianPngs.push(bytes);
-    }
-  }
-  for (let index = 0; index < charts.length; index += 1) {
-    assert.equal(englishPngs[index].equals(persianPngs[index]), false, charts[index]);
-  }
-});

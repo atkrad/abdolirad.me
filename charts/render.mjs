@@ -27,16 +27,14 @@ function fail(message) {
 function help() {
   console.log(`Usage: nix run .#charts -- [options]
 
-Find Vega-Lite specs under the Hugo content roots and write an SVG next to each one.
-A file named chart.vl.json becomes chart.svg in the same directory.
-Language comes from the content directory (content/en, content/fa), not the filename.
-After each SVG is written, the matching PNG is refreshed with charts/png.mjs.
+Render every *.vl.json under the Hugo content roots to SVG, then refresh the
+matching PNG. Language comes from the content directory (content/en, content/fa).
 
 Options:
   --help           Show this help
-  --check          Regenerate SVGs in a temporary directory and compare them
-                   with the committed files. Do not modify the tree.
-  --path <path>    Render one .vl.json file, or every spec under a directory
+  --check          Compare a fresh render with the committed SVG and PNG files.
+                   Do not modify the tree.
+  --path <path>    Limit to one .vl.json file, or every spec under a directory
 `);
 }
 
@@ -419,8 +417,7 @@ const PERSIAN_DIGITS = "۰۱۲۳۴۵۶۷۸۹";
 const ASCII_NUMBER = /^-?(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?$/;
 const LOCALIZED_NUMBER = /^-?(?:[0-9۰-۹]{1,3}(?:[,\u066C][0-9۰-۹]{3})+|[0-9۰-۹]+)(?:[.\u066B][0-9۰-۹]+)?$/;
 
-// Language comes from content/<lang>/ when present. A trailing .fa. before
-// .vl.json or .svg remains a fixture fallback for tests outside those trees.
+// Language comes from content/<lang>/ in the path. Outside that layout, default to en.
 export function localeOf(filePath) {
   const parts = path.resolve(filePath).split(path.sep);
   for (let index = 0; index < parts.length - 1; index += 1) {
@@ -428,8 +425,7 @@ export function localeOf(filePath) {
       return parts[index + 1];
     }
   }
-  const match = path.basename(filePath).match(/\.([a-z]{2})\.(?:vl\.json|svg)$/);
-  return match?.[1] === "fa" ? "fa" : "en";
+  return "en";
 }
 
 export function localizeNumericLabel(text) {
@@ -740,49 +736,45 @@ function main() {
       }
     }
 
+    let svgStale = false;
     if (check) {
-      let stale = false;
       for (const item of rendered) {
         const label = relative(item.dest);
         if (!existsSync(item.dest)) {
           console.error(`missing ${label}`);
-          stale = true;
+          svgStale = true;
           continue;
         }
-        const current = readFileSync(item.dest);
-        if (!current.equals(item.svg)) {
+        if (!readFileSync(item.dest).equals(item.svg)) {
           console.error(`stale ${label}`);
-          stale = true;
+          svgStale = true;
           continue;
         }
         console.log(`checked ${label}`);
       }
-      if (stale) process.exit(1);
-      return;
+    } else {
+      for (const item of rendered) {
+        const temporary = `${item.dest}.tmp`;
+        writeFileSync(temporary, item.svg);
+        renameSync(temporary, item.dest);
+        console.log(`rendered ${relative(item.dest)}`);
+      }
     }
 
-    for (const item of rendered) {
-      const temporary = `${item.dest}.tmp`;
-      writeFileSync(temporary, item.svg);
-      renameSync(temporary, item.dest);
-      console.log(`rendered ${relative(item.dest)}`);
-    }
+    const pngArgs = [path.join(repoRoot, "charts", "png.mjs")];
+    if (only) pngArgs.push("--path", only);
+    if (check) pngArgs.push("--check");
+    const png = spawnSync(process.execPath, pngArgs, {
+      cwd: repoRoot,
+      encoding: "utf8",
+      env: process.env,
+      stdio: "inherit",
+    });
+    if (png.error) fail(`failed to run charts/png.mjs: ${png.error.message}`);
+    if (svgStale || png.status !== 0) process.exit(1);
   } finally {
     rmSync(work, { recursive: true, force: true });
   }
-
-  const pngScript = path.join(repoRoot, "charts", "png.mjs");
-  const pngArgs = [pngScript];
-  if (only) pngArgs.push("--path", only);
-  if (check) pngArgs.push("--check");
-  const png = spawnSync(process.execPath, pngArgs, {
-    cwd: repoRoot,
-    encoding: "utf8",
-    env: process.env,
-    stdio: "inherit",
-  });
-  if (png.error) fail(`failed to run charts/png.mjs: ${png.error.message}`);
-  if (png.status !== 0) process.exit(png.status ?? 1);
 }
 
 const invokedDirectly = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;

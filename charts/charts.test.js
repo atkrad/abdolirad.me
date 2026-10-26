@@ -134,7 +134,6 @@ test("published locale pairs keep the same chart encoding", () => {
   }
   assert.equal(localeOf("notes/wing.vl.json"), "en");
   assert.equal(localeOf("content/fa/notes/wing.vl.json"), "fa");
-  assert.equal(localeOf("tmp/widget.fa.vl.json"), "fa");
 });
 
 test("csv parsing keeps quoted commas and numeric columns", () => {

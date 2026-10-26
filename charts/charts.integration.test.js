@@ -103,7 +103,7 @@ test("rendered fixtures embed the font, localize numbers, and stay deterministic
   }
 });
 
-test("check mode reports committed svgs that do not match a fresh render", () => {
+test("check mode accepts committed SVG and PNG output", () => {
   requireRenderTools();
   const result = spawnSync(process.execPath, [path.join(repoRoot, "charts", "render.mjs"), "--check"], {
     cwd: repoRoot,
